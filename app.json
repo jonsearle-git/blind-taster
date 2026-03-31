@@ -18,7 +18,13 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Blind Tester uses Bluetooth to connect players in the same room.",
         "NSBluetoothPeripheralUsageDescription": "Blind Tester uses Bluetooth to connect players in the same room.",
-        "UIBackgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
+        "UIBackgroundModes": [
+          "bluetooth-central",
+          "bluetooth-peripheral",
+          "bluetooth-central",
+          "bluetooth-peripheral"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -40,6 +46,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0813baa4-cee8-410b-83ad-5a742b867110"
+      }
     }
   }
 }
