@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Read(//c/Users/jon_s/.claude/projects/**)",
+      "Read(//c/Users/jon_s/.claude/projects/c--Users-jon-s-source-repos-blind-taster/memory/**)"
     ]
   }
 }
