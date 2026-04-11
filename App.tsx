@@ -1,20 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { GameProvider } from './src/context/GameContext';
+import { QuestionnairesProvider } from './src/context/QuestionnairesContext';
+import { AppNavigator } from './src/navigation/AppNavigator';
 
-export default function App() {
+export default function App(): React.ReactElement {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <GameProvider>
+      <QuestionnairesProvider>
+        <AppNavigator />
+        <StatusBar style="light" />
+      </QuestionnairesProvider>
+    </GameProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

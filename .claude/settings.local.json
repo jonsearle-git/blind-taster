@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm install:*)",
       "Read(//c/Users/jon_s/.claude/projects/**)",
-      "Read(//c/Users/jon_s/.claude/projects/c--Users-jon-s-source-repos-blind-taster/memory/**)"
+      "Read(//c/Users/jon_s/.claude/projects/c--Users-jon-s-source-repos-blind-taster/memory/**)",
+      "Bash(wc -l src/party/*.ts src/hooks/usePartySocket.ts src/hooks/useGameState.ts src/hooks/useHostControls.ts src/hooks/usePlayerActions.ts src/hooks/useDeepLink.ts src/screens/**/*.tsx src/context/GameContext.tsx)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

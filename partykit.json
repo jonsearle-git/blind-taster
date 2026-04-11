@@ -1,0 +1,4 @@
+{
+  "name": "blind-taster",
+  "main": "src/party/server.ts"
+}
