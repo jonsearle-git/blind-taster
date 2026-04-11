@@ -26,7 +26,11 @@ export default function JoinGameScreen(): React.ReactElement {
   const { handleMessage }            = useGameState();
   const { requestJoin }              = usePlayerActions();
 
-  const [roomCode, setRoomCode]   = useState(route.params?.roomCode ?? '');
+  // M5: sanitise deep-link room code before use
+  const [roomCode, setRoomCode]   = useState(() => {
+    const raw = route.params?.roomCode ?? '';
+    return /^[A-Z0-9]{4,8}$/i.test(raw) ? raw.toUpperCase() : '';
+  });
   const [name, setName]           = useState('');
   const [isDenied, setIsDenied]   = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);

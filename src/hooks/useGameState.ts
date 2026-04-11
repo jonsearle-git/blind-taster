@@ -37,10 +37,15 @@ export function useGameState() {
       case 'you_were_kicked':
         dispatch({ type: 'SET_KICKED' });
         break;
+      case 'round_started':
+        // Clear previous round's revealed answers (correctAnswer data) so it
+        // doesn't linger in context between rounds on the player device.
+        dispatch({ type: 'CLEAR_ROUND_RESULTS' });
+        break;
       default:
-        // all_players_answered, round_started, player_joined, player_kicked,
-        // game_started, round_ended, you_were_denied, player_denied — covered
-        // by game_state updates or handled by individual screens
+        // all_players_answered, player_joined, player_kicked, game_started,
+        // round_ended, you_were_denied, player_denied — covered by game_state
+        // updates or handled by individual screens
         break;
     }
   }, [dispatch]);

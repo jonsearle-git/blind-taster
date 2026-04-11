@@ -72,7 +72,7 @@ export function buildGameState(state: ServerState, roomId: string): GameState {
     currentRound,
     totalRounds:   rounds.length,
     questionnaire: questionnaire ? buildQuestionnaireForPlayer(questionnaire) : null,
-    rounds,
+    rounds:        rounds.map(r => ({ number: r.number, label: null })), // H1: strip labels until reveal
   };
 }
 

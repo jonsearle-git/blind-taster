@@ -25,7 +25,14 @@ type Route = RouteProp<HostStackParamList, 'HostLobby'>;
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function generateHostToken(): string {
+  // 128 bits via CSPRNG (react-native-get-random-values polyfills crypto.getRandomValues)
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export default function HostLobbyScreen(): React.ReactElement {
@@ -38,11 +45,12 @@ export default function HostLobbyScreen(): React.ReactElement {
   const { handleMessage }          = useGameState();
   const { admitPlayer, denyPlayer, startGame } = useHostControls();
 
-  const [roomCode] = useState(generateRoomCode);
+  const [roomCode]   = useState(generateRoomCode);
+  const [hostToken]  = useState(generateHostToken);
 
   const questionnaire = questionnaires.find((q) => q.id === questionnaireId) ?? null;
 
-  const { send } = usePartySocket({ roomCode, isHost: true, onMessage: handleMessage });
+  const { send } = usePartySocket({ roomCode, isHost: true, hostToken, onMessage: handleMessage });
 
   useEffect(() => {
     sendRef.current = send;
