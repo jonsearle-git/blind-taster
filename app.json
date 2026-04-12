@@ -15,7 +15,10 @@
     "scheme": "blindtaster",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.blindtaster.app"
+      "bundleIdentifier": "com.blindtaster.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,8 +30,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "blind-taster"
+        "projectId": "02f06090-71aa-49d8-9bf3-32774456fa3c"
       }
-    }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ],
+    "owner": "searlesoft"
   }
 }
