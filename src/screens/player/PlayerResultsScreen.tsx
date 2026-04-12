@@ -1,12 +1,16 @@
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
 import { useState } from 'react';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { PlayerStackParamList } from '../../types/navigation';
+import { PlayerStackParamList, RootStackParamList } from '../../types/navigation';
 import { RoundResult } from '../../types/results';
 import { useGameContext } from '../../context/GameContext';
+import { Button } from '../../components/Button';
+
+type Nav = NativeStackNavigationProp<PlayerStackParamList & RootStackParamList>;
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
 import { Divider } from '../../components/Divider';
@@ -21,10 +25,16 @@ function ordinal(n: number): string {
 }
 
 export default function PlayerResultsScreen(): React.ReactElement {
-  const route          = useRoute<Route>();
-  const { results }    = route.params;
-  const { state }      = useGameContext();
+  const route              = useRoute<Route>();
+  const { results }        = route.params;
+  const { state, dispatch } = useGameContext();
+  const navigation         = useNavigation<Nav>();
   const [expanded, setExpanded] = useState<number | null>(null);
+
+  function handleDone(): void {
+    dispatch({ type: 'RESET' });
+    navigation.getParent()?.navigate('Home');
+  }
 
   const myResult = results.players.find((p) => p.player.id === state.localPlayerId)
     ?? results.players[0]
@@ -45,6 +55,9 @@ export default function PlayerResultsScreen(): React.ReactElement {
       <Banner title="Your Results" />
 
       <FlatList
+        ListFooterComponent={
+          <Button label="Done" onPress={handleDone} style={styles.doneButton} />
+        }
         data={myResult.rounds}
         keyExtractor={(item) => String(item.roundNumber)}
         ListHeaderComponent={
@@ -109,6 +122,7 @@ function RoundSection({ round, expanded, onToggle }: SectionProps): React.ReactE
 
 const styles = StyleSheet.create({
   list:            { paddingBottom: Spacing.xxl },
+  doneButton:      { margin: Spacing.md },
   hero:            { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl, paddingHorizontal: Spacing.md },
   winnerBadge:     { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 2 },
   position:        { color: Colors.textPrimary, fontSize: FontSize.hero, fontWeight: FontWeight.black },

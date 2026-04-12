@@ -1,0 +1,12 @@
+name = "blind-taster"
+main = "src/party/server.ts"
+compatibility_date = "2025-01-01"
+tsconfig = "tsconfig.server.json"
+
+[[durable_objects.bindings]]
+name = "main"
+class_name = "BlindTasterServer"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["BlindTasterServer"]

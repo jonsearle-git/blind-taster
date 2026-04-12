@@ -30,7 +30,7 @@ export default function HostRoundScreen(): React.ReactElement {
   const currentRound = game?.currentRound ?? 1;
   const totalRounds  = game?.totalRounds ?? 1;
   const roundPhase   = game?.roundPhase ?? RoundPhase.Answering;
-  const answeredIds  = state.answeredPlayerIds;
+  const answeredIds  = new Set(game?.answeredPlayerIds ?? []);
   const roomCode     = game?.roomCode ?? '';
   const isLastRound  = currentRound === totalRounds;
 

@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
@@ -10,48 +10,29 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
-  tags: Tag[];
-  correctTagIds: string[];
+  tags:         Tag[];
   maxSelections: number | null;
-  onChange: (tags: Tag[], correctTagIds: string[], maxSelections: number | null) => void;
+  onChange:     (tags: Tag[], maxSelections: number | null) => void;
 };
 
-export function TagsBuilder({ tags, correctTagIds, maxSelections, onChange }: Props): React.ReactElement {
+export function TagsBuilder({ tags, maxSelections, onChange }: Props): React.ReactElement {
   function addTag(): void {
-    onChange([...tags, { id: uuidv4(), label: '' }], correctTagIds, maxSelections);
+    onChange([...tags, { id: uuidv4(), label: '' }], maxSelections);
   }
 
   function updateTag(id: string, label: string): void {
-    onChange(tags.map((t) => (t.id === id ? { ...t, label } : t)), correctTagIds, maxSelections);
+    onChange(tags.map((t) => (t.id === id ? { ...t, label } : t)), maxSelections);
   }
 
   function removeTag(id: string): void {
-    onChange(
-      tags.filter((t) => t.id !== id),
-      correctTagIds.filter((cid) => cid !== id),
-      maxSelections
-    );
-  }
-
-  function toggleCorrect(id: string): void {
-    const updated = correctTagIds.includes(id)
-      ? correctTagIds.filter((cid) => cid !== id)
-      : [...correctTagIds, id];
-    onChange(tags, updated, maxSelections);
+    onChange(tags.filter((t) => t.id !== id), maxSelections);
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Tags (tap circle to mark correct)</Text>
+      <Text style={styles.label}>Tags</Text>
       {tags.map((tag, index) => (
         <View key={tag.id} style={styles.tagRow}>
-          <Pressable
-            onPress={() => toggleCorrect(tag.id)}
-            style={[styles.correctDot, correctTagIds.includes(tag.id) && styles.correctDotActive]}
-            accessibilityLabel={`Mark tag ${index + 1} as correct`}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: correctTagIds.includes(tag.id) }}
-          />
           <TextInput
             value={tag.label}
             onChangeText={(text) => updateTag(tag.id, text)}
@@ -71,7 +52,7 @@ export function TagsBuilder({ tags, correctTagIds, maxSelections, onChange }: Pr
       <TextInput
         label="Max selections (leave blank for unlimited)"
         value={maxSelections !== null ? String(maxSelections) : ''}
-        onChangeText={(t) => onChange(tags, correctTagIds, t === '' ? null : parseInt(t, 10) || null)}
+        onChangeText={(t) => onChange(tags, t === '' ? null : parseInt(t, 10) || null)}
         keyboardType="numeric"
         placeholder="Unlimited"
       />
@@ -92,18 +73,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems:    'center',
     gap:           Spacing.sm,
-  },
-  correctDot: {
-    width:        22,
-    height:       22,
-    borderRadius: 4,
-    borderWidth:  2,
-    borderColor:  Colors.border,
-    flexShrink:   0,
-  },
-  correctDotActive: {
-    backgroundColor: Colors.success,
-    borderColor:     Colors.success,
   },
   tagInput: {
     flex: 1,

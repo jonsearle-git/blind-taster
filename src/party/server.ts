@@ -1,6 +1,7 @@
-import type * as Party from 'partykit/server';
+import * as Party from 'partyserver';
+import { routePartykitRequest } from 'partyserver';
 import { GamePhase, PauseReason, PlayerStatus, QuestionType, RoundPhase } from '../constants/gameConstants';
-import type { Answer, PlayerRoundAnswers } from '../types/answer';
+import type { PlayerRoundAnswers } from '../types/answer';
 import type { PlayerScore } from '../types/results';
 import type { Round } from '../types/game';
 import type { Questionnaire } from '../types/questionnaire';
@@ -9,7 +10,6 @@ import { gradePlayerAnswers } from './scoring';
 import {
   buildGameResults,
   buildGameState,
-  buildQuestionnaireForPlayer,
   toPlayer,
   type InternalPlayer,
   type RoundData,
@@ -18,7 +18,11 @@ import {
 
 type ConnState = { role: 'host' | 'player' | 'pending'; playerId?: string };
 
-export default class BlindTasterServer implements Party.Server {
+interface Env {
+  main: DurableObjectNamespace;
+}
+
+export class BlindTasterServer extends Party.Server<Env> {
   private hostToken: string | null = null; // C1: set on first host connect, verified on reconnect
 
   private s: ServerState = {
@@ -32,8 +36,6 @@ export default class BlindTasterServer implements Party.Server {
     roundAnswers: new Map(),
     roundHistory: new Map(),
   };
-
-  constructor(readonly room: Party.Room) {}
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext): void {
     const params = new URL(ctx.request.url).searchParams;
@@ -49,10 +51,14 @@ export default class BlindTasterServer implements Party.Server {
         conn.close(1008, 'invalid token'); return;
       }
       conn.setState({ role: 'host' } satisfies ConnState);
-      this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.room.id) });
-      if (this.s.phase !== GamePhase.Lobby) {
-        // M2: cancel the end-game alarm — host is back
-        void this.room.storage.deleteAlarm();
+      this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.name) });
+
+      if (this.s.phase === GamePhase.GameOver) {
+        // Resend final results so host can navigate to results screen after reconnect.
+        this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
+      } else if (this.s.phase !== GamePhase.Lobby) {
+        // Cancel the end-game alarm — host is back
+        void this.ctx.storage.deleteAlarm();
         this.broadcastToPlayers({ type: 'game_resumed' });
       }
     } else {
@@ -60,7 +66,7 @@ export default class BlindTasterServer implements Party.Server {
     }
   }
 
-  onMessage(message: string | ArrayBuffer, sender: Party.Connection): void {
+  onMessage(sender: Party.Connection, message: Party.WSMessage): void {
     // H2: safe parse — discard malformed messages
     let msg: ClientMessage;
     try {
@@ -71,10 +77,12 @@ export default class BlindTasterServer implements Party.Server {
 
     // C2: enforce role-based authorization
     const cs = sender.state as ConnState | null;
-    const HOST_ONLY   = new Set(['admit_player','deny_player','start_game','reveal_answers','advance_round','kick_player','end_game']);
-    const PLAYER_ONLY = new Set(['submit_answers']);
-    if (HOST_ONLY.has(msg.type)   && cs?.role !== 'host')   return;
-    if (PLAYER_ONLY.has(msg.type) && cs?.role !== 'player') return;
+    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','advance_round','kick_player','end_game']);
+    const PLAYER_ONLY  = new Set(['submit_answers']);
+    const PENDING_ONLY = new Set(['request_join']);
+    if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
+    if (PLAYER_ONLY.has(msg.type)  && cs?.role !== 'player')  return;
+    if (PENDING_ONLY.has(msg.type) && cs?.role !== 'pending') return;
 
     switch (msg.type) {
       case 'request_join':   return this.handleRequestJoin(sender, msg.payload.name);
@@ -89,23 +97,23 @@ export default class BlindTasterServer implements Party.Server {
     }
   }
 
-  onClose(conn: Party.Connection): void {
+  onClose(conn: Party.Connection, _code: number, _reason: string, _wasClean: boolean): void {
     const cs = conn.state as ConnState | null;
     if (cs?.role === 'host' && this.s.phase !== GamePhase.Lobby) {
       this.broadcastToPlayers({ type: 'game_paused', payload: { reason: PauseReason.HostDisconnected } });
-      // M2: end game automatically if host doesn't reconnect within 5 minutes
-      void this.room.storage.setAlarm(Date.now() + 5 * 60 * 1000);
+      // End game automatically if host doesn't reconnect within 5 minutes
+      void this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
     } else if (cs?.role === 'player' && cs.playerId) {
       const player = this.s.players.get(cs.playerId);
       if (player) { player.connectionId = null; player.status = PlayerStatus.Disconnected; }
-      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
     } else if (cs?.role === 'pending') {
       this.s.pending.delete(conn.id);
     }
   }
 
   async onAlarm(): Promise<void> {
-    // M2: fires 5 min after host disconnect — end the game if host still gone
+    // Fires 5 min after host disconnect — end the game if host still gone
     if (this.s.phase !== GamePhase.Lobby && this.s.phase !== GamePhase.GameOver && !this.findHost()) {
       this.handleEndGame();
     }
@@ -126,7 +134,7 @@ export default class BlindTasterServer implements Party.Server {
     const name = this.s.pending.get(pendingConnId);
     if (!name) return;
     this.s.pending.delete(pendingConnId);
-    const conn = this.room.getConnection(pendingConnId);
+    const conn = this.getConnection(pendingConnId);
     if (!conn) return;
     const player: InternalPlayer = {
       id: pendingConnId, name, status: PlayerStatus.Connected, score: 0, connectionId: pendingConnId,
@@ -135,12 +143,12 @@ export default class BlindTasterServer implements Party.Server {
     conn.setState({ role: 'player', playerId: pendingConnId } satisfies ConnState);
     this.send(conn, { type: 'player_admitted', payload: { playerId: pendingConnId, name } });
     this.broadcastToAdmitted({ type: 'player_joined', payload: { player: toPlayer(player) } });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   private handleDeny(pendingConnId: string): void {
     this.s.pending.delete(pendingConnId);
-    const conn = this.room.getConnection(pendingConnId);
+    const conn = this.getConnection(pendingConnId);
     if (conn) this.send(conn, { type: 'you_were_denied' });
   }
 
@@ -161,11 +169,10 @@ export default class BlindTasterServer implements Party.Server {
     this.s.phase          = GamePhase.InRound;
     this.s.roundPhase     = RoundPhase.Answering;
     this.s.roundAnswers   = new Map();
-    const qfp = buildQuestionnaireForPlayer(questionnaire);
-    // H1: strip labels so players can't read upcoming item names
-    const roundsForPlayer = rounds.map(r => ({ number: r.number, label: null }));
-    this.broadcastToPlayers({ type: 'game_started', payload: { questionnaire: qfp, rounds: roundsForPlayer } });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    // H1: labels stripped, correctAnswers never sent to players
+    const roundsForPlayer = rounds.map((r) => ({ number: r.number, label: null }));
+    this.broadcastToPlayers({ type: 'game_started', payload: { questionnaire, rounds: roundsForPlayer } });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   private handleSubmitAnswers(sender: Party.Connection, data: PlayerRoundAnswers): void {
@@ -177,24 +184,31 @@ export default class BlindTasterServer implements Party.Server {
     this.s.roundAnswers.set(playerId, data.answers);
     const host = this.findHost();
     if (host) this.send(host, { type: 'player_answered', payload: { playerId } });
+    // Broadcast updated game_state so answeredPlayerIds is current for all
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
     const connected = [...this.s.players.values()].filter((p) => p.connectionId !== null);
     if (connected.length > 0 && connected.every((p) => this.s.roundAnswers.has(p.id))) {
       this.s.phase      = GamePhase.AllAnswered;
       this.s.roundPhase = RoundPhase.AllAnswered;
-      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
       this.broadcastToAdmitted({ type: 'all_players_answered' });
     }
   }
 
   private handleRevealAnswers(): void {
     if (this.s.roundPhase === RoundPhase.AnswersRevealed) return; // C4: idempotency guard
-    const { questionnaire, currentRound, roundAnswers, players } = this.s;
+    const { questionnaire, currentRound, roundAnswers, players, rounds } = this.s;
     if (!questionnaire) return;
+
+    const currentRoundData = rounds.find((r) => r.number === currentRound);
+    if (!currentRoundData) return;
+
     const playerScores: PlayerScore[] = [];
     const roundMap = new Map<string, RoundData>();
+
     for (const player of players.values()) {
       const answers    = roundAnswers.get(player.id) ?? [];
-      const results    = gradePlayerAnswers(questionnaire.questions, answers);
+      const results    = gradePlayerAnswers(questionnaire.questions, answers, currentRoundData.correctAnswers);
       const roundScore = results.reduce((sum, r) => sum + r.pointsAwarded, 0);
       player.score    += roundScore;
       roundMap.set(player.id, { questionResults: results, roundScore });
@@ -203,16 +217,17 @@ export default class BlindTasterServer implements Party.Server {
     this.s.roundHistory.set(currentRound, roundMap);
     this.s.phase      = GamePhase.AnswersRevealed;
     this.s.roundPhase = RoundPhase.AnswersRevealed;
+
     // Personalized results per player
     for (const player of players.values()) {
-      const conn = player.connectionId ? this.room.getConnection(player.connectionId) : null;
+      const conn = player.connectionId ? this.getConnection(player.connectionId) : null;
       if (!conn) continue;
       const qr = roundMap.get(player.id)?.questionResults ?? [];
       this.send(conn, { type: 'answers_revealed', payload: { roundNumber: currentRound, questionResults: qr, playerScores } });
     }
     const host = this.findHost();
     if (host) this.send(host, { type: 'answers_revealed', payload: { roundNumber: currentRound, questionResults: [], playerScores } });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   private handleAdvanceRound(): void {
@@ -223,17 +238,17 @@ export default class BlindTasterServer implements Party.Server {
     this.s.roundPhase    = RoundPhase.Answering;
     this.s.roundAnswers  = new Map();
     this.broadcastToAdmitted({ type: 'round_started', payload: { roundNumber: this.s.currentRound } });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   private handleKick(playerId: string): void {
     const player = this.s.players.get(playerId);
     if (!player) return;
-    const conn = player.connectionId ? this.room.getConnection(player.connectionId) : null;
+    const conn = player.connectionId ? this.getConnection(player.connectionId) : null;
     if (conn) { this.send(conn, { type: 'you_were_kicked' }); conn.close(1000, 'kicked'); }
     this.s.players.delete(playerId);
     this.broadcastToAdmitted({ type: 'player_kicked', payload: { playerId } });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   private handleEndGame(): void {
@@ -241,7 +256,7 @@ export default class BlindTasterServer implements Party.Server {
     this.s.phase = GamePhase.GameOver;
     const results = buildGameResults(this.s);
     this.broadcastToAdmitted({ type: 'game_ended', payload: results });
-    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.room.id) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
   // ─── Utility ─────────────────────────────────────────────────────────────────
@@ -252,7 +267,7 @@ export default class BlindTasterServer implements Party.Server {
 
   private broadcastToPlayers(msg: ServerMessage): void {
     for (const player of this.s.players.values()) {
-      const conn = player.connectionId ? this.room.getConnection(player.connectionId) : null;
+      const conn = player.connectionId ? this.getConnection(player.connectionId) : null;
       if (conn) this.send(conn, msg);
     }
   }
@@ -265,9 +280,16 @@ export default class BlindTasterServer implements Party.Server {
   }
 
   private findHost(): Party.Connection | undefined {
-    for (const conn of this.room.connections.values()) {
+    for (const conn of this.getConnections()) {
       if ((conn.state as ConnState | null)?.role === 'host') return conn;
     }
     return undefined;
   }
 }
+
+// Worker entry point — routes /parties/main/:roomCode to BlindTasterServer
+export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    return (await routePartykitRequest(req, env)) ?? new Response('Not found', { status: 404 });
+  },
+};

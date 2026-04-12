@@ -1,10 +1,11 @@
-import { StyleSheet, View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { GamePhase } from '../../constants/gameConstants';
 import { PlayerStackParamList } from '../../types/navigation';
 import { useGameContext } from '../../context/GameContext';
 import { usePartySocket } from '../../hooks/usePartySocket';
@@ -18,6 +19,10 @@ import { TextInput } from '../../components/TextInput';
 type Nav   = NativeStackNavigationProp<PlayerStackParamList>;
 type Route = RouteProp<PlayerStackParamList, 'JoinGame'>;
 
+function isActiveGame(phase: GamePhase | undefined): boolean {
+  return phase !== undefined && phase !== GamePhase.Lobby && phase !== GamePhase.GameOver;
+}
+
 export default function JoinGameScreen(): React.ReactElement {
   const navigation  = useNavigation<Nav>();
   const route       = useRoute<Route>();
@@ -26,25 +31,38 @@ export default function JoinGameScreen(): React.ReactElement {
   const { handleMessage }            = useGameState();
   const { requestJoin }              = usePlayerActions();
 
-  // M5: sanitise deep-link room code before use
-  const [roomCode, setRoomCode]   = useState(() => {
-    const raw = route.params?.roomCode ?? '';
-    return /^[A-Z0-9]{4,8}$/i.test(raw) ? raw.toUpperCase() : '';
-  });
-  const [name, setName]           = useState('');
-  const [isDenied, setIsDenied]   = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
+  // M5: validate deep-link room code before use
+  const deepLinkCode = route.params?.roomCode ?? '';
+  const validatedDeepLink = /^[A-Z0-9]{4,8}$/i.test(deepLinkCode) ? deepLinkCode.toUpperCase() : '';
+
+  const [roomCodeInput, setRoomCodeInput] = useState(validatedDeepLink);
+  const [name, setName]                   = useState('');
+  const [isDenied, setIsDenied]           = useState(false);
+  const [isWaiting, setIsWaiting]         = useState(false);
+
+  // connectedRoomCode is only set when the user presses Join — not on every keystroke.
+  const [connectedRoomCode, setConnectedRoomCode] = useState('');
+
+  // After the socket connects, send the join request once.
+  const pendingJoinRef = useRef(false);
 
   const { send } = usePartySocket({
-    roomCode,
+    roomCode:  connectedRoomCode,
     isHost:    false,
     onMessage: (msg) => {
       if (msg.type === 'you_were_denied') {
         setIsWaiting(false);
         setIsDenied(true);
+        setConnectedRoomCode('');
         dispatch({ type: 'RESET' });
       } else {
         handleMessage(msg);
+      }
+    },
+    onOpen: () => {
+      if (pendingJoinRef.current) {
+        pendingJoinRef.current = false;
+        requestJoin(name.trim());
       }
     },
   });
@@ -61,13 +79,35 @@ export default function JoinGameScreen(): React.ReactElement {
     }
   }, [state.localPlayerId, navigation]);
 
-  const canSubmit = roomCode.trim().length > 0 && name.trim().length > 0 && !isWaiting;
+  const trimmedCode = roomCodeInput.trim();
+  const trimmedName = name.trim();
+  const canSubmit   = trimmedCode.length >= 4 && trimmedName.length > 0 && !isWaiting;
+
+  function doJoin(): void {
+    dispatch({ type: 'RESET' });
+    setIsDenied(false);
+    setIsWaiting(true);
+    pendingJoinRef.current = true;
+    setConnectedRoomCode(trimmedCode);
+  }
 
   function handleJoin(): void {
     if (!canSubmit) return;
-    setIsDenied(false);
-    setIsWaiting(true);
-    requestJoin(name.trim());
+
+    // Already in an active game — ask before leaving
+    if (isActiveGame(state.gameState?.phase)) {
+      Alert.alert(
+        'Already in a Game',
+        "You're currently in another game. Would you like to leave that game and join this one?",
+        [
+          { text: 'Stay in Current Game', style: 'cancel' },
+          { text: 'Leave & Join New Game', style: 'destructive', onPress: doJoin },
+        ]
+      );
+      return;
+    }
+
+    doJoin();
   }
 
   return (
@@ -85,9 +125,9 @@ export default function JoinGameScreen(): React.ReactElement {
           <View style={styles.fields}>
             <TextInput
               label="Room Code"
-              value={roomCode}
-              onChangeText={(t) => { setRoomCode(t.toUpperCase()); setIsDenied(false); setIsWaiting(false); }}
-              placeholder="e.g. ABCD12"
+              value={roomCodeInput}
+              onChangeText={(t) => { setRoomCodeInput(t.toUpperCase()); setIsDenied(false); setIsWaiting(false); }}
+              placeholder="e.g. ABCD1234"
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={8}
@@ -105,7 +145,7 @@ export default function JoinGameScreen(): React.ReactElement {
 
             {isDenied && (
               <View style={styles.deniedCard}>
-                <Text style={styles.deniedText}>You were not admitted into the game.</Text>
+                <Text style={styles.deniedText}>You were not admitted into this game.</Text>
               </View>
             )}
           </View>

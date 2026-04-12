@@ -6,32 +6,21 @@ import { TextInput } from '../TextInput';
 
 type Props = {
   currencySymbol: string;
-  correctValue: number | null;
-  onChange: (currencySymbol: string, correctValue: number | null) => void;
+  onChange:       (currencySymbol: string) => void;
 };
 
-export function PriceBuilder({ currencySymbol, correctValue, onChange }: Props): React.ReactElement {
+export function PriceBuilder({ currencySymbol, onChange }: Props): React.ReactElement {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Price Settings</Text>
-      <View style={styles.row}>
-        <TextInput
-          label="Currency Symbol"
-          value={currencySymbol}
-          onChangeText={(t) => onChange(t, correctValue)}
-          placeholder="£"
-          containerStyle={styles.symbolField}
-          maxLength={3}
-        />
-        <TextInput
-          label="Correct Answer"
-          value={correctValue !== null ? String(correctValue) : ''}
-          onChangeText={(t) => onChange(currencySymbol, parseFloat(t) || null)}
-          keyboardType="decimal-pad"
-          placeholder="0.00"
-          containerStyle={styles.valueField}
-        />
-      </View>
+      <Text style={styles.label}>Currency</Text>
+      <TextInput
+        label="Currency Symbol"
+        value={currencySymbol}
+        onChangeText={onChange}
+        placeholder="£"
+        containerStyle={styles.symbolField}
+        maxLength={3}
+      />
     </View>
   );
 }
@@ -45,14 +34,7 @@ const styles = StyleSheet.create({
     fontSize:   FontSize.sm,
     fontWeight: FontWeight.medium,
   },
-  row: {
-    flexDirection: 'row',
-    gap:           Spacing.sm,
-  },
   symbolField: {
-    width: 100,
-  },
-  valueField: {
-    flex: 1,
+    width: 120,
   },
 });

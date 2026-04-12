@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
@@ -10,29 +10,21 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
-  options: MultipleChoiceOption[];
-  correctOptionId: string | null;
-  onChange: (options: MultipleChoiceOption[], correctOptionId: string | null) => void;
+  options:  MultipleChoiceOption[];
+  onChange: (options: MultipleChoiceOption[]) => void;
 };
 
-export function MultipleChoiceBuilder({ options, correctOptionId, onChange }: Props): React.ReactElement {
+export function MultipleChoiceBuilder({ options, onChange }: Props): React.ReactElement {
   function addOption(): void {
-    const newOption: MultipleChoiceOption = { id: uuidv4(), label: '' };
-    onChange([...options, newOption], correctOptionId);
+    onChange([...options, { id: uuidv4(), label: '' }]);
   }
 
   function updateOption(id: string, label: string): void {
-    onChange(options.map((o) => (o.id === id ? { ...o, label } : o)), correctOptionId);
+    onChange(options.map((o) => (o.id === id ? { ...o, label } : o)));
   }
 
   function removeOption(id: string): void {
-    const updated = options.filter((o) => o.id !== id);
-    const newCorrect = correctOptionId === id ? null : correctOptionId;
-    onChange(updated, newCorrect);
-  }
-
-  function setCorrect(id: string): void {
-    onChange(options, id);
+    onChange(options.filter((o) => o.id !== id));
   }
 
   return (
@@ -40,13 +32,6 @@ export function MultipleChoiceBuilder({ options, correctOptionId, onChange }: Pr
       <Text style={styles.label}>Options</Text>
       {options.map((option, index) => (
         <View key={option.id} style={styles.optionRow}>
-          <Pressable
-            onPress={() => setCorrect(option.id)}
-            style={[styles.correctDot, option.id === correctOptionId && styles.correctDotActive]}
-            accessibilityLabel={`Mark option ${index + 1} as correct`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: option.id === correctOptionId }}
-          />
           <TextInput
             value={option.label}
             onChangeText={(text) => updateOption(option.id, text)}
@@ -63,9 +48,6 @@ export function MultipleChoiceBuilder({ options, correctOptionId, onChange }: Pr
         </View>
       ))}
       <Button label="Add Option" onPress={addOption} variant="secondary" />
-      {correctOptionId === null && options.length > 0 && (
-        <Text style={styles.hint}>Tap the circle to mark the correct answer</Text>
-      )}
     </View>
   );
 }
@@ -84,23 +66,7 @@ const styles = StyleSheet.create({
     alignItems:    'center',
     gap:           Spacing.sm,
   },
-  correctDot: {
-    width:        22,
-    height:       22,
-    borderRadius: 11,
-    borderWidth:  2,
-    borderColor:  Colors.border,
-    flexShrink:   0,
-  },
-  correctDotActive: {
-    backgroundColor: Colors.success,
-    borderColor:     Colors.success,
-  },
   optionInput: {
     flex: 1,
-  },
-  hint: {
-    color:    Colors.textDisabled,
-    fontSize: FontSize.xs,
   },
 });

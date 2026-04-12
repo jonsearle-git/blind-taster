@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text, FlatList, Pressable, Alert, Modal } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { v4 as uuidv4 } from 'uuid';
@@ -40,28 +40,59 @@ function makeDefault(type: QuestionType): Question {
   const id = uuidv4();
   switch (type) {
     case QuestionType.MultipleChoiceText:
-      return { id, type, prompt: '', options: [{ id: uuidv4(), label: '' }, { id: uuidv4(), label: '' }], correctOptionId: '' };
+      return { id, type, prompt: '', options: [{ id: uuidv4(), label: '' }, { id: uuidv4(), label: '' }] };
     case QuestionType.MultipleChoiceNumber:
-      return { id, type, prompt: '', options: [{ id: uuidv4(), label: '' }, { id: uuidv4(), label: '' }], correctOptionId: '' };
+      return { id, type, prompt: '', options: [{ id: uuidv4(), label: '' }, { id: uuidv4(), label: '' }] };
     case QuestionType.SliderNumber:
-      return { id, type, prompt: '', min: 0, max: 100, step: 1, correctValue: 50 };
+      return { id, type, prompt: '', min: 0, max: 100, step: 1 };
     case QuestionType.Tags:
-      return { id, type, prompt: '', tags: [], correctTagIds: [], maxSelections: null };
+      return { id, type, prompt: '', tags: [], maxSelections: null };
     case QuestionType.Price:
-      return { id, type, prompt: '', currencySymbol: '£', correctValue: 0 };
+      return { id, type, prompt: '', currencySymbol: '£' };
   }
+}
+
+function validateQuestions(questions: Question[]): string | null {
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    if (!q.prompt.trim()) return `Question ${i + 1} is missing a prompt.`;
+    if (q.type === QuestionType.MultipleChoiceText || q.type === QuestionType.MultipleChoiceNumber) {
+      if (q.options.length < 2) return `Question ${i + 1} needs at least 2 options.`;
+      if (q.options.some((o) => !o.label.trim())) return `Question ${i + 1} has an empty option label.`;
+    }
+    if (q.type === QuestionType.SliderNumber) {
+      if (q.min >= q.max) return `Question ${i + 1}: min must be less than max.`;
+    }
+    if (q.type === QuestionType.Tags) {
+      if (q.tags.length === 0) return `Question ${i + 1} needs at least one tag.`;
+      if (q.tags.some((t) => !t.label.trim())) return `Question ${i + 1} has an empty tag label.`;
+    }
+  }
+  return null;
 }
 
 export default function QuestionnaireBuilderScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { save }   = useQuestionnaires();
+  const { questionnaires, save, update } = useQuestionnaires();
 
-  const [name, setName]         = useState('');
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [error, setError]       = useState<string | null>(null);
-  const [saving, setSaving]     = useState(false);
+  const existingId = route.params?.questionnaireId;
+
+  const [name, setName]             = useState('');
+  const [questions, setQuestions]   = useState<Question[]>([]);
+  const [error, setError]           = useState<string | null>(null);
+  const [saving, setSaving]         = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+
+  // Load existing questionnaire when editing
+  useEffect(() => {
+    if (!existingId) return;
+    const existing = questionnaires.find((q) => q.id === existingId);
+    if (existing) {
+      setName(existing.name);
+      setQuestions(existing.questions);
+    }
+  }, [existingId, questionnaires]);
 
   function addQuestion(type: QuestionType): void {
     setQuestions((prev) => [...prev, makeDefault(type)]);
@@ -77,23 +108,30 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
   }
 
   async function handleSave(): Promise<void> {
-    if (name.trim() === '') { setError('Give your questionnaire a name.'); return; }
+    const trimmedName = name.trim();
+    if (!trimmedName) { setError('Give your questionnaire a name.'); return; }
     if (questions.length === 0) { setError('Add at least one question.'); return; }
+    const validationError = validateQuestions(questions);
+    if (validationError) { setError(validationError); return; }
     setError(null);
     setSaving(true);
     try {
       const now = Date.now();
       const q: Questionnaire = {
-        id: route.params.questionnaireId ?? uuidv4(),
-        name: name.trim(),
+        id:        existingId ?? uuidv4(),
+        name:      trimmedName,
         questions,
         createdAt: now,
         updatedAt: now,
       };
-      await save(q);
+      if (existingId) {
+        await update(q);
+      } else {
+        await save(q);
+      }
       Alert.alert(
         'Questionnaire Saved',
-        'Remember to label the items you are testing in the Rounds screen. These labels are hidden from players until the end.',
+        'Remember to set the correct answer for each round in the Rounds screen. Labels are hidden from players until the end.',
         [{ text: 'Got it', onPress: () => navigation.goBack() }]
       );
     } catch {
@@ -106,7 +144,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
   return (
     <ScreenContainer noPadding>
       <View style={styles.inner}>
-        <Text style={styles.title}>Build Questionnaire</Text>
+        <Text style={styles.title}>{existingId ? 'Edit Questionnaire' : 'Build Questionnaire'}</Text>
 
         <TextInput
           label="Questionnaire Name"
@@ -169,19 +207,16 @@ function QuestionEditor({ question, index, onUpdate, onRemove }: EditorProps): R
         <Text style={styles.editorLabel}>Q{index + 1} · {TYPE_LABELS[question.type]}</Text>
         <IconButton icon="✕" onPress={() => onRemove(question.id)} color={Colors.error} accessibilityLabel={`Remove question ${index + 1}`} />
       </View>
-      <TextInput label="Question" value={question.prompt} onChangeText={(p) => onUpdate({ ...question, prompt: p } as Question)} placeholder="What is the question?" />
-      {question.type === QuestionType.MultipleChoiceText && (
+      <TextInput
+        label="Question"
+        value={question.prompt}
+        onChangeText={(p) => onUpdate({ ...question, prompt: p } as Question)}
+        placeholder="What is the question?"
+      />
+      {(question.type === QuestionType.MultipleChoiceText || question.type === QuestionType.MultipleChoiceNumber) && (
         <MultipleChoiceBuilder
-          options={(question as MultipleChoiceTextQuestion).options}
-          correctOptionId={(question as MultipleChoiceTextQuestion).correctOptionId}
-          onChange={(o, c) => onUpdate({ ...question, options: o, correctOptionId: c ?? '' } as MultipleChoiceTextQuestion)}
-        />
-      )}
-      {question.type === QuestionType.MultipleChoiceNumber && (
-        <MultipleChoiceBuilder
-          options={(question as MultipleChoiceNumberQuestion).options}
-          correctOptionId={(question as MultipleChoiceNumberQuestion).correctOptionId}
-          onChange={(o, c) => onUpdate({ ...question, options: o, correctOptionId: c ?? '' } as MultipleChoiceNumberQuestion)}
+          options={(question as MultipleChoiceTextQuestion | MultipleChoiceNumberQuestion).options}
+          onChange={(opts) => onUpdate({ ...question, options: opts } as Question)}
         />
       )}
       {question.type === QuestionType.SliderNumber && (
@@ -189,23 +224,20 @@ function QuestionEditor({ question, index, onUpdate, onRemove }: EditorProps): R
           min={(question as SliderNumberQuestion).min}
           max={(question as SliderNumberQuestion).max}
           step={(question as SliderNumberQuestion).step}
-          correctValue={(question as SliderNumberQuestion).correctValue}
           onChange={(f) => onUpdate({ ...question, ...f } as SliderNumberQuestion)}
         />
       )}
       {question.type === QuestionType.Tags && (
         <TagsBuilder
           tags={(question as TagsQuestion).tags}
-          correctTagIds={(question as TagsQuestion).correctTagIds}
           maxSelections={(question as TagsQuestion).maxSelections}
-          onChange={(t, c, m) => onUpdate({ ...question, tags: t, correctTagIds: c, maxSelections: m } as TagsQuestion)}
+          onChange={(t, m) => onUpdate({ ...question, tags: t, maxSelections: m } as TagsQuestion)}
         />
       )}
       {question.type === QuestionType.Price && (
         <PriceBuilder
           currencySymbol={(question as PriceQuestion).currencySymbol}
-          correctValue={(question as PriceQuestion).correctValue}
-          onChange={(sym, val) => onUpdate({ ...question, currencySymbol: sym, correctValue: val ?? 0 } as PriceQuestion)}
+          onChange={(sym) => onUpdate({ ...question, currencySymbol: sym } as PriceQuestion)}
         />
       )}
     </View>

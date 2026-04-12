@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { Button } from '../../components/Button';
 import { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,11 +16,18 @@ import { KickedOverlay } from '../../components/KickedOverlay';
 import { GamePausedOverlay } from '../../components/GamePausedOverlay';
 import { Divider } from '../../components/Divider';
 
-type Nav = NativeStackNavigationProp<PlayerStackParamList>;
+import { RootStackParamList } from '../../types/navigation';
+
+type Nav = NativeStackNavigationProp<PlayerStackParamList & RootStackParamList>;
 
 export default function PlayerLobbyScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const { state }  = useGameContext();
+  const { state, dispatch }  = useGameContext();
+
+  function handleLeave(): void {
+    dispatch({ type: 'RESET' });
+    navigation.getParent()?.navigate('Home');
+  }
 
   const players  = state.gameState?.players ?? [];
   const roomCode = state.gameState?.roomCode ?? '';
@@ -32,7 +40,7 @@ export default function PlayerLobbyScreen(): React.ReactElement {
 
   return (
     <ScreenContainer noPadding>
-      <Banner title="Waiting Room" />
+      <Banner title="Waiting Room" onHostMenuPress={undefined} />
 
       <View style={styles.inner}>
         <View style={styles.waitingSection}>
@@ -59,6 +67,13 @@ export default function PlayerLobbyScreen(): React.ReactElement {
         />
       </View>
 
+      <Button
+        label="Leave Game"
+        onPress={handleLeave}
+        variant="secondary"
+        style={styles.leaveButton}
+      />
+
       <KickedOverlay visible={state.isKicked} />
       <GamePausedOverlay visible={state.isPaused} />
     </ScreenContainer>
@@ -67,6 +82,7 @@ export default function PlayerLobbyScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   inner:          { flex: 1, padding: Spacing.md, gap: Spacing.md },
+  leaveButton:    { margin: Spacing.md },
   waitingSection: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.md },
   waitingText:    { color: Colors.textSecondary, fontSize: FontSize.md },
   roomCode:       { color: Colors.gold, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: 4 },

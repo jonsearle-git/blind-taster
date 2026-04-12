@@ -13,9 +13,6 @@ export function useGameState() {
       case 'join_request':
         dispatch({ type: 'ADD_JOIN_REQUEST', payload: msg.payload });
         break;
-      case 'player_answered':
-        dispatch({ type: 'MARK_PLAYER_ANSWERED', payload: msg.payload.playerId });
-        break;
       case 'answers_revealed':
         dispatch({
           type:    'SET_ROUND_RESULTS',
@@ -38,14 +35,13 @@ export function useGameState() {
         dispatch({ type: 'SET_KICKED' });
         break;
       case 'round_started':
-        // Clear previous round's revealed answers (correctAnswer data) so it
-        // doesn't linger in context between rounds on the player device.
+        // Clear previous round's results when a new round begins.
         dispatch({ type: 'CLEAR_ROUND_RESULTS' });
         break;
       default:
         // all_players_answered, player_joined, player_kicked, game_started,
-        // round_ended, you_were_denied, player_denied — covered by game_state
-        // updates or handled by individual screens
+        // player_answered, round_ended, you_were_denied — covered by game_state
+        // updates or handled by individual screens.
         break;
     }
   }, [dispatch]);

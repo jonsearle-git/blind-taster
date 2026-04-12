@@ -1,10 +1,9 @@
-import { GamePhase, PauseReason, RoundPhase } from '../constants/gameConstants';
+import { PauseReason } from '../constants/gameConstants';
 import { Answer, PlayerRoundAnswers } from './answer';
 import { GameResults, PlayerScore, QuestionResult } from './results';
-import { GameState } from './game';
+import { GameState, Round, RoundForPlayer } from './game';
 import { JoinRequest, Player } from './player';
-import { Questionnaire, QuestionnaireForPlayer } from './questionnaire';
-import { Round } from './game';
+import { Questionnaire } from './questionnaire';
 
 // ─── Server → Client ────────────────────────────────────────────────────────
 
@@ -17,7 +16,7 @@ export type ServerMessage =
   | { type: 'player_joined';      payload: { player: Player } }
   | { type: 'player_kicked';      payload: { playerId: string } }
   | { type: 'you_were_kicked' }
-  | { type: 'game_started';       payload: { questionnaire: QuestionnaireForPlayer; rounds: Round[] } }
+  | { type: 'game_started';       payload: { questionnaire: Questionnaire; rounds: RoundForPlayer[] } }
   | { type: 'round_started';      payload: { roundNumber: number } }
   | { type: 'player_answered';    payload: { playerId: string } }
   | { type: 'all_players_answered' }

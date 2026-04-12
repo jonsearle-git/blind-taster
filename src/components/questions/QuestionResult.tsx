@@ -2,15 +2,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { QuestionType } from '../../constants/gameConstants';
 import { QuestionResult as QuestionResultType } from '../../types/results';
-import {
-  MultipleChoiceTextAnswer,
-  MultipleChoiceNumberAnswer,
-  SliderNumberAnswer,
-  TagsAnswer,
-  PriceAnswer,
-} from '../../types/answer';
 
 type Props = {
   result: QuestionResultType;
@@ -29,42 +21,26 @@ export function QuestionResult({ result }: Props): React.ReactElement {
       </View>
 
       <View style={styles.answers}>
-        <AnswerLine label="Your answer" answer={result.playerAnswer} />
-        <AnswerLine label="Correct answer" answer={result.correctAnswer} correct />
+        <AnswerLine label="Your answer"    value={result.playerAnswerLabel} />
+        <AnswerLine label="Correct answer" value={result.correctAnswerLabel} correct />
       </View>
     </View>
   );
 }
 
 type AnswerLineProps = {
-  label: string;
-  answer: QuestionResultType['playerAnswer'];
+  label:   string;
+  value:   string;
   correct?: boolean;
 };
 
-function AnswerLine({ label, answer, correct = false }: AnswerLineProps): React.ReactElement {
+function AnswerLine({ label, value, correct = false }: AnswerLineProps): React.ReactElement {
   return (
     <View style={styles.answerLine}>
       <Text style={styles.answerLabel}>{label}:</Text>
-      <Text style={[styles.answerValue, correct && styles.answerValueCorrect]}>
-        {formatAnswer(answer)}
-      </Text>
+      <Text style={[styles.answerValue, correct && styles.answerValueCorrect]}>{value}</Text>
     </View>
   );
-}
-
-function formatAnswer(answer: QuestionResultType['playerAnswer']): string {
-  switch (answer.type) {
-    case QuestionType.MultipleChoiceText:
-    case QuestionType.MultipleChoiceNumber:
-      return (answer as MultipleChoiceTextAnswer | MultipleChoiceNumberAnswer).selectedOptionId;
-    case QuestionType.SliderNumber:
-      return String((answer as SliderNumberAnswer).value);
-    case QuestionType.Tags:
-      return (answer as TagsAnswer).selectedTagIds.join(', ');
-    case QuestionType.Price:
-      return `${(answer as PriceAnswer).value.toFixed(2)}`;
-  }
 }
 
 const styles = StyleSheet.create({
@@ -75,12 +51,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     backgroundColor: Colors.surface,
   },
-  correct: {
-    borderLeftColor: Colors.success,
-  },
-  incorrect: {
-    borderLeftColor: Colors.error,
-  },
+  correct:   { borderLeftColor: Colors.success },
+  incorrect: { borderLeftColor: Colors.error },
   header: {
     flexDirection:  'row',
     justifyContent: 'space-between',
@@ -97,15 +69,9 @@ const styles = StyleSheet.create({
     fontSize:   FontSize.md,
     fontWeight: FontWeight.bold,
   },
-  pointsCorrect: {
-    color: Colors.success,
-  },
-  pointsWrong: {
-    color: Colors.textDisabled,
-  },
-  answers: {
-    gap: Spacing.xs,
-  },
+  pointsCorrect: { color: Colors.success },
+  pointsWrong:   { color: Colors.textDisabled },
+  answers:       { gap: Spacing.xs },
   answerLine: {
     flexDirection: 'row',
     gap:           Spacing.sm,

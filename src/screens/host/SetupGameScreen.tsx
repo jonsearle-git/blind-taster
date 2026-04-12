@@ -1,11 +1,13 @@
-import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Pressable, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { GamePhase } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
 import { Questionnaire } from '../../types/questionnaire';
+import { useGameContext } from '../../context/GameContext';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
@@ -16,12 +18,33 @@ import { Divider } from '../../components/Divider';
 
 type Nav = NativeStackNavigationProp<HostStackParamList>;
 
+function isActiveGame(phase: GamePhase | undefined): boolean {
+  return phase !== undefined && phase !== GamePhase.GameOver;
+}
+
 export default function SetupGameScreen(): React.ReactElement {
-  const navigation = useNavigation<Nav>();
+  const navigation              = useNavigation<Nav>();
+  const { state, dispatch }     = useGameContext();
   const { questionnaires, loading, error } = useQuestionnaires();
 
-  function handleSelect(q: Questionnaire): void {
+  function doSelect(q: Questionnaire): void {
+    dispatch({ type: 'RESET' });
     navigation.navigate('RoundsBuilder', { questionnaireId: q.id });
+  }
+
+  function handleSelect(q: Questionnaire): void {
+    if (isActiveGame(state.gameState?.phase)) {
+      Alert.alert(
+        'Already in a Game',
+        "You're currently in another game. Leave that game and start a new one?",
+        [
+          { text: 'Stay in Current Game', style: 'cancel' },
+          { text: 'Leave & Start New Game', style: 'destructive', onPress: () => doSelect(q) },
+        ]
+      );
+      return;
+    }
+    doSelect(q);
   }
 
   return (
@@ -33,7 +56,7 @@ export default function SetupGameScreen(): React.ReactElement {
 
       <Button
         label="Create New Questionnaire"
-        onPress={() => navigation.navigate('QuestionnaireBuilder', {})}
+        onPress={() => { dispatch({ type: 'RESET' }); navigation.navigate('QuestionnaireBuilder', {}); }}
         variant="secondary"
       />
 

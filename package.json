@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest"
   },
   "dependencies": {
     "@react-native-community/slider": "^5.2.0",
@@ -29,13 +30,17 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260412.1",
     "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.0",
     "@types/react": "~19.1.0",
     "@types/uuid": "^10.0.0",
-    "jest": "^30.3.0",
-    "jest-expo": "^55.0.15",
-    "partykit": "^0.0.115",
-    "typescript": "~5.9.2"
+    "jest": "^29.7.0",
+    "jest-expo": "^54.0.0",
+    "partyserver": "^0.4.1",
+    "ts-jest": "^29.4.9",
+    "typescript": "~5.9.2",
+    "wrangler": "^4.81.1"
   },
   "private": true
 }

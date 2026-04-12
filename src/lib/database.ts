@@ -34,7 +34,11 @@ export async function saveQuestionnaire(questionnaire: Questionnaire): Promise<v
   const database = await getDatabase();
   await database.runAsync(
     `INSERT INTO questionnaires (id, name, data, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name       = excluded.name,
+       data       = excluded.data,
+       updated_at = excluded.updated_at`,
     questionnaire.id,
     questionnaire.name,
     JSON.stringify(questionnaire),

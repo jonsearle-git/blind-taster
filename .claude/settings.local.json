@@ -5,7 +5,16 @@
       "Read(//c/Users/jon_s/.claude/projects/**)",
       "Read(//c/Users/jon_s/.claude/projects/c--Users-jon-s-source-repos-blind-taster/memory/**)",
       "Bash(wc -l src/party/*.ts src/hooks/usePartySocket.ts src/hooks/useGameState.ts src/hooks/useHostControls.ts src/hooks/usePlayerActions.ts src/hooks/useDeepLink.ts src/screens/**/*.tsx src/context/GameContext.tsx)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -E \"\\\\.tsx?$\")",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(npx jest:*)",
+      "Bash(node -e \"const p = require\\('jest-expo'\\); console.log\\(JSON.stringify\\(Object.keys\\(p\\), null, 2\\)\\)\")",
+      "Bash(ls node_modules/jest-expo/jest-preset.js)",
+      "Bash(head -20 node_modules/jest-expo/jest-preset.js)",
+      "Bash(npm audit:*)",
+      "Bash(npm view:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

@@ -1,23 +1,34 @@
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
 import { useState } from 'react';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { HostStackParamList } from '../../types/navigation';
+import { HostStackParamList, RootStackParamList } from '../../types/navigation';
 import { PlayerResult } from '../../types/results';
+import { useGameContext } from '../../context/GameContext';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
+import { Button } from '../../components/Button';
 import { LeaderboardRow } from '../../components/LeaderboardRow';
 import { Divider } from '../../components/Divider';
 import { QuestionResult } from '../../components/questions/QuestionResult';
 
 type Route = RouteProp<HostStackParamList, 'HostResults'>;
+type Nav = NativeStackNavigationProp<HostStackParamList & RootStackParamList>;
 
 export default function HostResultsScreen(): React.ReactElement {
-  const route = useRoute<Route>();
-  const { results } = route.params;
+  const route              = useRoute<Route>();
+  const { results }        = route.params;
+  const { dispatch }       = useGameContext();
+  const navigation         = useNavigation<Nav>();
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  function handleDone(): void {
+    dispatch({ type: 'RESET' });
+    navigation.getParent()?.navigate('Home');
+  }
 
   return (
     <ScreenContainer noPadding>
@@ -46,6 +57,8 @@ export default function HostResultsScreen(): React.ReactElement {
           )}
         />
       </View>
+
+      <Button label="Done" onPress={handleDone} style={styles.doneButton} />
     </ScreenContainer>
   );
 }
@@ -83,6 +96,7 @@ function PlayerResultSection({ result, highlight, expanded, onToggle }: SectionP
 
 const styles = StyleSheet.create({
   inner:       { flex: 1, padding: Spacing.md, gap: Spacing.md },
+  doneButton:  { margin: Spacing.md },
   winner:      { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.lg },
   winnerLabel: { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
   winnerName:  { color: Colors.textPrimary, fontSize: FontSize.hero, fontWeight: FontWeight.black },

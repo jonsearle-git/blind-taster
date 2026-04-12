@@ -1,6 +1,5 @@
 import { createContext, useContext, useReducer, useRef } from 'react';
 import type { ClientMessage } from '../types/partykit';
-import { GamePhase, RoundPhase } from '../constants/gameConstants';
 import { GameState } from '../types/game';
 import { Player, JoinRequest } from '../types/player';
 import { GameResults, PlayerScore, QuestionResult } from '../types/results';
@@ -10,11 +9,10 @@ type GameContextState = {
   isHost:            boolean;
   localPlayerId:     string | null;
   pendingRequests:   JoinRequest[];
-  answeredPlayerIds: Set<string>;
   isKicked:          boolean;
   isPaused:          boolean;
   gameResults:       GameResults | null;
-  // Post-reveal data for current round
+  // Post-reveal data for current round (player-facing)
   lastRoundResults:  QuestionResult[] | null;
   lastPlayerScores:  PlayerScore[] | null;
 };
@@ -25,8 +23,6 @@ type GameAction =
   | { type: 'SET_LOCAL_PLAYER_ID';  payload: string }
   | { type: 'ADD_JOIN_REQUEST';     payload: JoinRequest }
   | { type: 'REMOVE_JOIN_REQUEST';  payload: string }
-  | { type: 'MARK_PLAYER_ANSWERED'; payload: string }
-  | { type: 'CLEAR_ANSWERED' }
   | { type: 'SET_KICKED' }
   | { type: 'SET_PAUSED';           payload: boolean }
   | { type: 'SET_GAME_RESULTS';     payload: GameResults }
@@ -39,7 +35,6 @@ const initialState: GameContextState = {
   isHost:            false,
   localPlayerId:     null,
   pendingRequests:   [],
-  answeredPlayerIds: new Set(),
   isKicked:          false,
   isPaused:          false,
   gameResults:       null,
@@ -56,22 +51,11 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
     case 'SET_LOCAL_PLAYER_ID':
       return { ...state, localPlayerId: action.payload };
     case 'ADD_JOIN_REQUEST':
-      return {
-        ...state,
-        pendingRequests: [...state.pendingRequests, action.payload],
-      };
+      // Deduplicate by playerId
+      if (state.pendingRequests.some((r) => r.playerId === action.payload.playerId)) return state;
+      return { ...state, pendingRequests: [...state.pendingRequests, action.payload] };
     case 'REMOVE_JOIN_REQUEST':
-      return {
-        ...state,
-        pendingRequests: state.pendingRequests.filter((r) => r.playerId !== action.payload),
-      };
-    case 'MARK_PLAYER_ANSWERED': {
-      const next = new Set(state.answeredPlayerIds);
-      next.add(action.payload);
-      return { ...state, answeredPlayerIds: next };
-    }
-    case 'CLEAR_ANSWERED':
-      return { ...state, answeredPlayerIds: new Set() };
+      return { ...state, pendingRequests: state.pendingRequests.filter((r) => r.playerId !== action.payload) };
     case 'SET_KICKED':
       return { ...state, isKicked: true };
     case 'SET_PAUSED':

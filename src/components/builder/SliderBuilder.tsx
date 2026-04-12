@@ -5,47 +5,39 @@ import { Spacing } from '../../constants/spacing';
 import { TextInput } from '../TextInput';
 
 type Props = {
-  min: number;
-  max: number;
-  step: number;
-  correctValue: number | null;
-  onChange: (fields: { min: number; max: number; step: number; correctValue: number | null }) => void;
+  min:      number;
+  max:      number;
+  step:     number;
+  onChange: (fields: { min: number; max: number; step: number }) => void;
 };
 
-export function SliderBuilder({ min, max, step, correctValue, onChange }: Props): React.ReactElement {
+export function SliderBuilder({ min, max, step, onChange }: Props): React.ReactElement {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Range & Correct Answer</Text>
+      <Text style={styles.label}>Range</Text>
       <View style={styles.row}>
         <TextInput
           label="Min"
           value={String(min)}
-          onChangeText={(t) => onChange({ min: parseFloat(t) || 0, max, step, correctValue })}
+          onChangeText={(t) => onChange({ min: parseFloat(t) || 0, max, step })}
           keyboardType="numeric"
           containerStyle={styles.field}
         />
         <TextInput
           label="Max"
           value={String(max)}
-          onChangeText={(t) => onChange({ min, max: parseFloat(t) || 0, step, correctValue })}
+          onChangeText={(t) => onChange({ min, max: parseFloat(t) || 0, step })}
           keyboardType="numeric"
           containerStyle={styles.field}
         />
         <TextInput
           label="Step"
           value={String(step)}
-          onChangeText={(t) => onChange({ min, max, step: parseFloat(t) || 1, correctValue })}
+          onChangeText={(t) => onChange({ min, max, step: parseFloat(t) || 1 })}
           keyboardType="numeric"
           containerStyle={styles.field}
         />
       </View>
-      <TextInput
-        label="Correct Answer"
-        value={correctValue !== null ? String(correctValue) : ''}
-        onChangeText={(t) => onChange({ min, max, step, correctValue: parseFloat(t) ?? null })}
-        keyboardType="numeric"
-        placeholder={`${min} – ${max}`}
-      />
     </View>
   );
 }

@@ -1,6 +1,6 @@
 # Blind Taster — Implementation Plan
 
-Reference files: CLAUDE.md (coding rules), PROJECT.md (product spec)
+Reference files: CLAUDE.md (coding rules), PROJECT.md (product spec), ARCHITECTURE.md (system design)
 
 ---
 
@@ -29,9 +29,11 @@ expo-status-bar ~3.x
 ```
 typescript ~5.9.x
 @types/react ~19.x
-partykit ^0.0.x
-jest-expo ~54.x
-@testing-library/react-native ^12.x
+@types/jest
+wrangler ^4.x
+@cloudflare/workers-types ^4.x
+partyserver ^0.4.x
+ts-jest           (used for server unit tests — avoids Expo runtime scope issues)
 jest ^29.x
 ```
 
@@ -39,17 +41,29 @@ jest ^29.x
 
 ## Project Config Files
 
-### `partykit.json`
-```json
-{
-  "name": "blind-taster",
-  "main": "src/party/server.ts"
-}
+### `wrangler.toml`
+```toml
+name = "blind-taster"
+main = "src/party/server.ts"
+compatibility_date = "2025-01-01"
+tsconfig = "tsconfig.server.json"
+
+[[durable_objects.bindings]]
+name = "main"
+class_name = "BlindTasterServer"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["BlindTasterServer"]
 ```
 
 ### `src/lib/config.ts`
-- Exports `PARTYKIT_HOST` — `localhost:1999` in `__DEV__`, `blind-taster.yourname.partykit.dev` in production
+- Exports `PARTYKIT_HOST` — `localhost:8787` in `__DEV__`, `blind-taster.YOUR_SUBDOMAIN.workers.dev` in production
 - Single place to change the URL — never hardcoded elsewhere
+
+### `jest.config.js`
+- Uses `projects` array: one entry using `jest-expo` preset (for app code), one entry using `ts-jest` preset (for `src/party/` server code)
+- ts-jest project avoids Expo's runtime module scope restrictions
 
 ### `app.json`
 - Deep link scheme: `blindtaster`
@@ -58,16 +72,9 @@ jest ^29.x
 - Dark UI, splash background `#0F0A0B`
 - New architecture enabled
 
-### `eas.json`
-- `development` profile — debug build, dev client
-- `preview` profile — internal distribution
-- `production` profile — app store submission
-
 ---
 
 ## Phase 1 — Foundation
-
-Nothing visual. Project skeleton only.
 
 ### 1.1 Constants
 
@@ -81,125 +88,87 @@ Nothing visual. Project skeleton only.
 Each file covers one domain. No `any`. No plain string discriminators.
 
 - `src/types/questionnaire.ts`
-  - `QuestionType` enum: `MultipleChoiceText | MultipleChoiceNumber | SliderNumber | Tags | Price`
-  - `MultipleChoiceOption`: `{ id: string; label: string; value: string | number }`
-  - `Question`: discriminated union per QuestionType (each has its own shape)
-  - `Questionnaire`: `{ id: string; name: string; questions: Question[] }`
+  - `Question`: discriminated union per QuestionType — **pure templates, no correct answer fields**
+  - `QuestionForPlayer` and `QuestionnaireForPlayer`: type aliases for `Question` / `Questionnaire` (no stripping needed)
+  - `Questionnaire`: `{ id: string; name: string; questions: Question[]; createdAt: number; updatedAt: number }`
 
 - `src/types/game.ts`
   - `GamePhase` enum: `Lobby | InRound | AllAnswered | AnswersRevealed | GameOver`
   - `RoundPhase` enum: `Answering | AllAnswered | AnswersRevealed`
-  - `Round`: `{ number: number; label?: string }`
-  - `GameState`: `{ roomCode: string; phase: GamePhase; players: Player[]; currentRound: number; totalRounds: number; roundPhase: RoundPhase }`
+  - `Round`: `{ number: number; label: string | null; correctAnswers: Answer[] }` — full server-side type
+  - `RoundForPlayer`: `{ number: number; label: null }` — stripped for client broadcast
+  - `GameState`: includes `answeredPlayerIds: string[]` (server-authoritative)
 
 - `src/types/player.ts`
   - `PlayerStatus` enum: `Connected | Disconnected | Kicked`
-  - `Player`: `{ id: string; name: string; status: PlayerStatus; isHost: boolean; score: number }`
+  - `Player`: `{ id: string; name: string; status: PlayerStatus; score: number }`
 
 - `src/types/answer.ts`
-  - `Answer`: discriminated union per QuestionType (matches question shape)
-  - `PlayerRoundAnswers`: `{ playerId: string; roundNumber: number; answers: Answer[] }`
+  - `Answer`: discriminated union per QuestionType
 
 - `src/types/results.ts`
-  - `QuestionResult`: `{ questionId: string; playerAnswer: Answer; correctAnswer: Answer; pointsAwarded: number }`
-  - `RoundResult`: `{ roundNumber: number; roundLabel?: string; questions: QuestionResult[]; roundScore: number }`
-  - `PlayerResult`: `{ player: Player; rounds: RoundResult[]; totalScore: number; position: number }`
-  - `GameResults`: `{ players: PlayerResult[]; winner: Player }`
+  - `QuestionResult`: includes `playerAnswerLabel: string` and `correctAnswerLabel: string` (resolved server-side, never raw IDs)
+  - `RoundResult`, `PlayerResult`, `GameResults`, `PlayerScore`
 
-- `src/types/partykit.ts` — all socket message types (see Phase 2)
+- `src/types/partykit.ts` — all socket message types
 
 - `src/types/navigation.ts`
-  - `RootStackParamList`
-  - `HostStackParamList`
-  - `HostInGameTabParamList`
-  - `PlayerStackParamList`
+  - `RootStackParamList`, `HostStackParamList`, `HostInGameTabParamList`, `PlayerStackParamList`
 
 ### 1.3 Navigation
 
 - `src/navigation/AppNavigator.tsx` — root stack: HomeScreen → HostNavigator | PlayerNavigator
-- `src/navigation/HostNavigator.tsx` — stack (pre-game screens) + nested tab navigator (in-game)
-  - Stack: SetupGameScreen → QuestionnaireBuilderScreen → RoundsBuilderScreen → HostLobbyScreen → HostInGameTabs
-  - Tabs: HostRoundScreen | HostPlayersScreen | HostLeaderboardScreen → HostResultsScreen
-- `src/navigation/PlayerNavigator.tsx` — stack: JoinGameScreen → PlayerLobbyScreen → PlayerRoundScreen → PlayerResultsScreen
+- `src/navigation/HostNavigator.tsx` — stack + nested tab navigator
+  - Stack: SetupGame → QuestionnaireBuilder → RoundsBuilder → HostLobby → HostInGameTabs → HostResults
+  - Tabs: HostRound | HostPlayers | HostLeaderboard
+- `src/navigation/PlayerNavigator.tsx` — stack: JoinGame → PlayerLobby → PlayerRound → PlayerResults
 - Deep link config: `blindtaster://join/:roomCode` maps to `JoinGameScreen` with `roomCode` param
 
 ### 1.4 Local Database
 
-- `src/lib/database.ts` — initialise expo-sqlite, run schema migrations on app start
-- Schema: `questionnaires` table — stores serialised `Questionnaire` JSON with `id`, `name`, `created_at`, `updated_at`
-- `src/lib/migrations.ts` — versioned migrations array, runs on startup to bring DB to latest schema
-- Functions: `getAllQuestionnaires`, `getQuestionnaire`, `saveQuestionnaire`, `updateQuestionnaire`, `deleteQuestionnaire`
+- `src/lib/database.ts` — initialise expo-sqlite, run migrations on app start
+- Schema: `questionnaires` table — stores serialised `Questionnaire` JSON
+- `saveQuestionnaire` uses UPSERT (`ON CONFLICT(id) DO UPDATE SET`) — safe for create and edit
+- `src/lib/migrations.ts` — versioned migrations, runs on startup
 
 ---
 
 ## Phase 2 — PartyKit Server
 
-### Files
-
-- `src/party/server.ts` — Cloudflare Worker (PartyKit `Party.Server`)
-- `partykit.json` — project config
-
 ### Server Responsibilities
 
 - Owns all game state in memory (per room)
-- Correct answers stored server-side only, never broadcast until host triggers reveal
-- Scores all player answers server-side
-- Pauses game on host disconnect, resumes on reconnect
-- Reserves player names — rejoining player with same name reclaims their slot
-- Tracks connection status per player
-
-### Server State Shape (internal, never fully exposed to clients)
-
-```ts
-type ServerGameState = {
-  phase: GamePhase;
-  host: { connectionId: string; name: string };
-  players: Map<string, ServerPlayer>;
-  questionnaire: Questionnaire; // includes correct answers — never sent to players
-  rounds: Round[];
-  currentRound: number;
-  totalRounds: number;
-  roundPhase: RoundPhase;
-  answers: Map<string, PlayerRoundAnswers>; // keyed by playerId
-};
-```
+- Correct answers stored in `Round.correctAnswers` server-side — never broadcast until host triggers reveal
+- Scores all player answers server-side at reveal time
+- Pauses game on host disconnect; sets Durable Object alarm for 5-minute auto-end
+- Resends `game_ended` to reconnecting host if phase is `GameOver`
+- `request_join` in `PENDING_ONLY` set — admitted players cannot re-request
+- Uses `room.getConnections()` (not deprecated `.connections.values()`)
 
 ### Message Types (`src/types/partykit.ts`)
 
-**Server → Client (ServerMessage discriminated union):**
-- `game_state` — sanitised state sync (no correct answers). Sent on connect/reconnect.
-- `join_request` — `{ playerId: string; name: string }` — host only
-- `player_admitted` — `{ playerId: string; name: string }`
-- `player_denied` — `{ playerId: string }` — sent to that player only
-- `player_joined` — `{ player: Player }` — broadcast
-- `player_kicked` — `{ playerId: string }` — broadcast; kicked player gets `you_were_kicked`
+**Server → Client (ServerMessage):**
+- `game_state` — sanitised state sync (no correct answers, null labels on rounds)
+- `join_request` — host only
+- `you_were_denied` — sent to denied player only
+- `player_joined` — broadcast
 - `you_were_kicked` — sent to kicked player only
-- `game_started` — `{ questionnaire: QuestionnaireForPlayer; rounds: Round[] }` — no correct answers
-- `round_started` — `{ roundNumber: number }` — label NOT included
-- `player_answered` — `{ playerId: string }` — broadcast so host can track status
-- `all_players_answered` — broadcast; triggers Reveal Answers button on host
-- `answers_revealed` — `{ roundNumber: number; correctAnswers: Answer[]; playerScores: PlayerScore[] }` — broadcast
-- `round_ended` — broadcast; players wait for next round
+- `game_started` — `{ questionnaire: QuestionnaireForPlayer; rounds: RoundForPlayer[] }`
+- `round_started` — `{ roundNumber: number }`
+- `all_players_answered` — broadcast
+- `answers_revealed` — personalised per player; host gets `playerScores` only
 - `game_ended` — `{ results: GameResults }` — broadcast; includes round labels
-- `game_paused` — `{ reason: PauseReason }` — host disconnected
-- `game_resumed` — host reconnected
+- `game_paused`, `game_resumed`
 
-**Client → Server (ClientMessage discriminated union):**
+**Client → Server (ClientMessage):**
 - `request_join` — `{ name: string }`
-- `admit_player` — `{ playerId: string }` — host only
-- `deny_player` — `{ playerId: string }` — host only
-- `start_game` — `{ questionnaire: Questionnaire; totalRounds: number }` — host only; questionnaire includes correct answers
+- `admit_player`, `deny_player` — host only
+- `start_game` — `{ questionnaire: Questionnaire; rounds: Round[] }` — host only; rounds include `correctAnswers`
 - `submit_answers` — `{ roundNumber: number; answers: Answer[] }`
-- `reveal_answers` — host only; triggers scoring + broadcast
+- `reveal_answers` — host only
 - `advance_round` — host only
-- `kick_player` — `{ playerId: string }` — host only
+- `kick_player` — host only
 - `end_game` — host only
-
-### Validation
-
-- All incoming messages validated for shape and type before processing
-- Host-only messages rejected if sender is not the host connection
-- Duplicate name on rejoin: restore existing player slot, do not create new
 
 ---
 
@@ -207,231 +176,157 @@ type ServerGameState = {
 
 ### Context
 
-- `src/context/GameContext.tsx` — provides game state + dispatch to all screens. Wraps the entire navigator.
-- `src/context/QuestionnairesContext.tsx` — provides saved questionnaires from local DB
+- `src/context/GameContext.tsx` — `useReducer` context for all game state. `RESET` returns to `initialState`.
+- No `answeredPlayerIds` field on context — comes from `GameState.answeredPlayerIds` (server-authoritative).
 
 ### Hooks
 
-- `src/hooks/usePartySocket.ts` — manages WebSocket connection via `partysocket`. Handles connect, disconnect, reconnect, message parsing, error state. Exposes `send(message: ClientMessage)` and `connectionStatus`.
-- `src/hooks/useGameState.ts` — subscribes to socket messages, updates GameContext. Single source of truth for client-side game state.
+- `src/hooks/usePartySocket.ts` — WebSocket via `partysocket`. Queues messages when not OPEN; flushes on reconnect.
+- `src/hooks/useGameState.ts` — subscribes to socket messages, updates GameContext.
 - `src/hooks/useHostControls.ts` — typed wrappers: `admitPlayer`, `denyPlayer`, `startGame`, `revealAnswers`, `advanceRound`, `kickPlayer`, `endGame`.
 - `src/hooks/usePlayerActions.ts` — `submitAnswers`, `requestJoin`.
 - `src/hooks/useQuestionnaires.ts` — CRUD against local DB via QuestionnairesContext.
 - `src/hooks/useAnswers.ts` — manages in-progress answer state for current round before submission.
-- `src/hooks/useDeepLink.ts` — listens for incoming `blindtaster://join/:roomCode` deep links, extracts room code.
 
 ---
 
 ## Phase 4 — Shared Components
 
 ### Layout
-- `src/components/ScreenContainer.tsx` — SafeAreaView wrapper with background colour, standard padding
-- `src/components/Banner.tsx` — top bar. Shows title/round. Optionally shows player score (right side). Optionally shows host dropdown trigger (right side).
-- `src/components/Divider.tsx` — horizontal rule using border colour
+- `ScreenContainer` — SafeAreaView wrapper with background colour, standard padding
+- `Banner` — top bar; title, optional player score, optional host dropdown trigger
+- `Divider` — horizontal rule
 
 ### Inputs
-- `src/components/TextInput.tsx` — styled text input, error state, label
-- `src/components/Button.tsx` — primary / secondary / destructive variants, loading state, disabled state
-- `src/components/IconButton.tsx` — icon-only pressable (kick, copy, etc.)
+- `TextInput` — styled text input, label, optional error
+- `Button` — primary / secondary / destructive variants, loading and disabled states
+- `IconButton` — icon-only pressable
 
-### Question Renderers (player-facing)
-- `src/components/questions/MultipleChoiceQuestion.tsx` — text or number options, single select
-- `src/components/questions/SliderQuestion.tsx` — slider + numeric display, or number input toggle
-- `src/components/questions/TagsQuestion.tsx` — tag grid, enforces max selection limit
-- `src/components/questions/PriceQuestion.tsx` — currency symbol + decimal number input
+### Question Inputs (player-facing)
+- `questions/QuestionInput.tsx` — dispatcher: renders correct input component by question type
+- `questions/MultipleChoiceQuestion.tsx`, `SliderQuestion.tsx`, `TagsQuestion.tsx`, `PriceQuestion.tsx`
 
-### Question Result Renderers (post-reveal, player-facing)
-- `src/components/questions/MultipleChoiceResult.tsx`
-- `src/components/questions/SliderResult.tsx`
-- `src/components/questions/TagsResult.tsx`
-- `src/components/questions/PriceResult.tsx`
+### Question Results (post-reveal)
+- `questions/QuestionResult.tsx` — renders `playerAnswerLabel` and `correctAnswerLabel` strings directly; no ID resolution needed
 
-Each result renderer shows player's answer, correct answer, points awarded. Green/red highlight.
-
-### Question Builder (host-facing)
-- `src/components/builder/QuestionTypeSelector.tsx` — pick question type
-- `src/components/builder/MultipleChoiceBuilder.tsx`
-- `src/components/builder/SliderBuilder.tsx`
-- `src/components/builder/TagsBuilder.tsx`
-- `src/components/builder/PriceBuilder.tsx`
+### Question Builders (host-facing)
+- `builder/MultipleChoiceBuilder.tsx` — options only, no correct answer field
+- `builder/SliderBuilder.tsx` — min/max/step only
+- `builder/TagsBuilder.tsx` — tags + maxSelections only
+- `builder/PriceBuilder.tsx` — currencySymbol only
 
 ### Game UI
-- `src/components/PlayerRow.tsx` — player name + status dot + optional score + optional kick icon
-- `src/components/PlayerStatusList.tsx` — list of PlayerRow, answered/waiting state
-- `src/components/LeaderboardRow.tsx` — position + name + score
-- `src/components/RoundBadge.tsx` — shows "Round 3 of 5"
-- `src/components/QRCodeDisplay.tsx` — QR code + room code text + copy button
-- `src/components/ScoreBadge.tsx` — score shown in banner
-- `src/components/HostDropdown.tsx` — overlay dropdown with: Players list, Room Code, End Game Early
+- `PlayerRow`, `LeaderboardRow`, `RoundBadge`, `QRCodeDisplay`, `ScoreBadge`, `HostDropdown`
 
 ### Overlays
-- `src/components/GamePausedOverlay.tsx` — full-screen. Shown to all when host disconnects.
-- `src/components/KickedOverlay.tsx` — full-screen. Shown to player when kicked.
-- `src/components/ConfirmDialog.tsx` — reusable confirmation dialog (used for kick, end game early)
-
-### Feedback
-- `src/components/EmptyState.tsx` — illustration + message for empty lists
-- `src/components/ErrorMessage.tsx` — inline error display
-- `src/components/LoadingSpinner.tsx`
+- `GamePausedOverlay` — shown to all when host disconnects
+- `KickedOverlay` — shown to kicked player
+- `ErrorBoundary` — class component wrapping entire app in `App.tsx`
 
 ---
 
 ## Phase 5 — Screens (Host Flow)
 
 ### HomeScreen
-- Two primary actions: **Host a Game** / **Join a Game**
-- List of saved questionnaires with edit/delete/duplicate actions
-- Empty state if no questionnaires saved
+- Host / Join buttons
+- Saved questionnaires list with **Edit** and **Delete** per item
+- Edit navigates to `QuestionnaireBuilder` with existing `questionnaireId`
+- Delete shows confirmation alert
 
 ### SetupGameScreen
-- Select an existing questionnaire OR create a new one (→ QuestionnaireBuilderScreen)
-- Proceed to RoundsBuilderScreen
-- Only enabled once a questionnaire is selected
+- Select an existing questionnaire OR create new (→ QuestionnaireBuilder)
+- Proceed → RoundsBuilder
 
 ### QuestionnaireBuilderScreen
 - Add, edit, reorder, delete questions
-- Each question: type selector, prompt text, options/tags/range config, correct answer
-- Validate before save: at least 1 question, all questions have a prompt, multiple choice has ≥2 options
-- Save locally (create or update)
-- On save: modal prompt — "Remember to label the items you are testing. Labels are hidden from players until the end."
+- Questions are pure templates — type, prompt, options/tags/range. No correct answer entry here.
+- Validates before save: name, ≥1 question, all questions have a prompt, MC has ≥2 options
+- Uses `save()` for new, `update()` for existing questionnaires (both use DB UPSERT)
 
 ### RoundsBuilderScreen
-- Number input for total rounds (min 1)
-- Optional label per round — inline list, tap to edit
-- Persistent banner: "Round labels are hidden from players until the end of the game"
-- Proceed to create game (connects to PartyKit, gets room code) → HostLobbyScreen
+- Number input for total rounds (1–20)
+- Per round: optional label (hidden from players), and **correct answers** for every question
+- Badge shows `X/Y` questions answered per round; turns green with ✓ when complete
+- Expandable answer section per round uses `QuestionInput` components
+- `handleContinue()` validates all rounds have all answers before proceeding
+- Proceeds → HostLobby with `{ questionnaireId, rounds }`
 
 ### HostLobbyScreen
-- Large room code display
-- QRCodeDisplay component (+ copy button)
-- Pending join requests list — Admit / Deny per player
-- Admitted players list with connection status
-- Start Game button — enabled only when ≥1 player admitted
-- Connecting/error state if PartyKit connection fails
+- Large room code + QR code
+- Pending join requests: Admit / Deny per player
+- Admitted players list
+- Start Game — enabled when ≥1 player admitted
+- Sends `start_game` with full questionnaire + `rounds` (including `correctAnswers`)
 
-### HostRoundScreen (in-game tab 1)
-- RoundBadge (e.g. "Round 2 of 5")
-- PlayerStatusList — answered (tick) / waiting (clock) per player
-- State machine:
-  - `Answering` — waiting for all players
-  - `AllAnswered` — **Reveal Answers** button enabled
-  - `AnswersRevealed` — **Next Round** button (or **End Game** on final round)
-- Host dropdown in banner
-
-### HostPlayersScreen (in-game tab 2)
-- PlayerRow per player: name + green/grey dot + kick icon
-- Kick → ConfirmDialog → kick_player message sent
-
-### HostLeaderboardScreen (in-game tab 3)
-- LeaderboardRow per player: position + name + score
-- Updates live after each round's reveal
+### HostRoundScreen
+- Per-player answered/waiting status (from `game.answeredPlayerIds`)
+- State machine: Answering → Reveal Answers → Next Round (or End Game)
 
 ### HostResultsScreen
-- Final leaderboard with winner highlighted
-- Per-player expandable breakdown: score per round, right/wrong per question, round labels revealed
-- Share/export results (Phase 7)
+- Winner + final leaderboard
+- Expandable per-player breakdown: score per round, per-question result with labels
+- **Done** button — dispatches RESET, navigates to Home
 
 ---
 
 ## Phase 6 — Screens (Player Flow)
 
 ### JoinGameScreen
-- Room code input (pre-filled if arrived via deep link)
+- Room code input (pre-filled from deep link route param)
 - Name input
-- Submit join request → waiting state ("Waiting for host to admit you…")
-- Denied state: "You were not admitted into the game" with option to try again
-- Connection error state
+- `isActiveGame()` check before connecting — shows "Already in a Game" confirmation dialog if true
+- `RESET` dispatched before connecting to new room
+- `connectedRoomCode` decoupled from `roomCodeInput` — socket only connects on Join press
+- `pendingJoinRef` sends `request_join` in `onOpen` after socket connects
 
 ### PlayerLobbyScreen
-- "Waiting for the host to start the game…"
-- Player's own name shown
-- Animated waiting indicator
+- Waiting for host to start
+- Player list
+- **Leave Game** button — dispatches RESET, navigates to Home
 
 ### PlayerRoundScreen
-- RoundBadge in banner + ScoreBadge in banner
-- Scrollable list of all questions rendered by type-specific component
-- Answers tracked in `useAnswers` hook
-- Submit button (fixed at bottom) — disabled until all questions answered
-- Post-submit state: questions locked, "Waiting for host to reveal answers…"
-- Post-reveal state: each question switches to result renderer (green/red), score delta shown ("+ 3 points this round")
-- Advances automatically to next round when host triggers `advance_round`
-- GamePausedOverlay if host disconnects
-- KickedOverlay if player is kicked
+- All questions rendered; answers tracked in `useAnswers`
+- Submit button enabled when all questions answered
+- Post-submit: locked, waiting for reveal
+- Post-reveal: inline results with `playerAnswerLabel` / `correctAnswerLabel` strings
 
 ### PlayerResultsScreen
-- Final score + finishing position ("You came 2nd!")
-- Round-by-round breakdown: each round's label revealed, questions right/wrong
-- Animated score reveal
+- Final position (ordinal) + total score
+- Round-by-round breakdown, expandable per round
+- **Done** button — dispatches RESET, navigates to Home
 
 ---
 
-## Phase 7 — Polish & Production Readiness
+## Phase 7 — Production Readiness
 
 ### Error Handling
-- `src/components/ErrorBoundary.tsx` — React error boundary wrapping the navigator. Catches render errors, shows recovery UI.
-- All async operations (DB reads, socket sends) have error states surfaced to UI
-- Network timeout handling on PartyKit connection attempts
-- If PartyKit is unreachable on game create: show error, do not proceed to lobby
+- `ErrorBoundary` class component wrapping navigator in `App.tsx`
+- All async operations have error states surfaced to UI
+- Server: all messages wrapped in `try/catch`; payload size limits enforced
 
 ### Reconnection
 - `usePartySocket` uses `partysocket` auto-reconnect with exponential backoff
-- On reconnect: server sends `game_state` to restore full client state
-- `GamePausedOverlay` shown to all players while host is disconnected
-- Player rejoins same room + name → server restores their slot and score
+- `usePartySocket` queues outbound messages when socket is not OPEN; flushes on reconnect
+- On reconnect: server sends `game_state`; host gets `game_ended` if game is over
 
-### Accessibility
-- All interactive elements have `accessibilityLabel` and `accessibilityRole`
-- Colour is never the only indicator of state (always paired with icon or text)
-- Minimum touch target 44×44pt
-
-### Performance
-- `FlatList` for all lists (player lists, questionnaire list, leaderboard)
-- `useCallback` / `useMemo` on all handlers passed as props
-- `React.memo` on pure display components (PlayerRow, LeaderboardRow, etc.)
-- Avoid re-renders: game state updates only trigger re-renders in consuming components
-
-### Validation & Security
-- Questionnaire builder validates before save — no empty prompts, no options without labels
-- All server messages validated before dispatch to state
-- Correct answers never leave the server until host reveals
-- Host-only messages rejected server-side if sender is not the authenticated host connection
-
-### Deep Links
-- `useDeepLink` hook handles cold-start and warm-start deep links
-- `blindtaster://join/ROOMCODE` → pre-fills room code on JoinGameScreen
-
-### Animations
-- Screen transitions: native stack slide
-- Overlay entry/exit: fade
-- Score update in banner: count-up animation
-- Answer reveal: staggered green/red highlight per question
-- Leaderboard reorder: animated position change
-
-### App Store Preparation
-- App icon (1024×1024, no alpha)
-- Splash screen
-- `eas.json` build profiles: development / preview / production
-- iOS: privacy descriptions in `app.json` (no Bluetooth needed — remove old BLE permissions)
-- Android: no special permissions needed for PartyKit (internet only)
-- EAS build for both platforms before submission
+### Security
+- Host token verified server-side on every connection
+- Host-only messages rejected if sender is not the host connection
+- `answeredPlayerIds` tracked server-side — re-submission blocked
+- `reveal_answers` phase-guarded against double-call
+- All broadcasts go through `broadcastToAdmitted()` — unadmitted connections excluded
+- Payload size limits: ≤20 questions, ≤20 rounds, prompts ≤500 chars, options ≤10
+- Player name 1–24 chars validated server-side
+- Room code 8 alphanumeric characters (~1 trillion combinations)
+- Deep link room code sanitised in `JoinGameScreen` before use
 
 ### Testing
-- Unit tests for: scoring logic, DB helpers, message parsing, answer validation
-- Component tests: question renderers, builder components
-- Integration: full game flow with mock socket
-- Test files co-located: `ComponentName.test.tsx` next to component
+- Unit tests in `src/party/__tests__/`
+- `scoring.test.ts` — tests `scoreAnswer(q, player, correct)` and `gradePlayerAnswers(qs, players, corrects)`
+- `helpers.test.ts` — tests `buildGameState`, `buildGameResults`, `toPlayer`
+- Run: `npx jest "party/__tests__"` (uses ts-jest, no Expo runtime)
 
----
-
-## Build Order
-
-1. **Phase 1** — constants, types, navigation skeleton, DB setup
-2. **Phase 4** — all shared components with static/mock props (no real data)
-3. **Phase 5 + 6** — all screens with mock data (no socket, no DB)
-4. **Phase 2** — PartyKit server, local dev with `npx partykit dev`
-5. **Phase 3** — context + hooks wiring real socket data into screens
-6. Wire DB — questionnaire save/load working end to end
-7. **Phase 7** — error handling, reconnection, polish, EAS builds
-8. QA full game flow on real devices (iOS + Android)
-9. `npx partykit deploy` — deploy server to production
-10. App store submission via EAS
+### Deployment
+- `npx wrangler deploy` — deploys server to Cloudflare
+- Update `PROD_HOST` in `src/lib/config.ts` with your Cloudflare workers subdomain before production build
+- EAS build profiles: `development` / `preview` / `production`

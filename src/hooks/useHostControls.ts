@@ -30,13 +30,11 @@ export function useHostControls() {
   }, [send]);
 
   const advanceRound = useCallback((): void => {
-    dispatch({ type: 'CLEAR_ANSWERED' });
     dispatch({ type: 'CLEAR_ROUND_RESULTS' });
     send({ type: 'advance_round' });
   }, [dispatch, send]);
 
   const endGame = useCallback((): void => {
-    dispatch({ type: 'CLEAR_ANSWERED' });
     dispatch({ type: 'CLEAR_ROUND_RESULTS' });
     send({ type: 'end_game' });
   }, [dispatch, send]);

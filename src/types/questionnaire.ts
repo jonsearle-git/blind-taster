@@ -5,12 +5,13 @@ export type MultipleChoiceOption = {
   label: string;
 };
 
+// Questions are templates — correct answers live on each Round, not here.
+
 export type MultipleChoiceTextQuestion = {
   id: string;
   type: QuestionType.MultipleChoiceText;
   prompt: string;
   options: MultipleChoiceOption[];
-  correctOptionId: string;
 };
 
 export type MultipleChoiceNumberQuestion = {
@@ -18,7 +19,6 @@ export type MultipleChoiceNumberQuestion = {
   type: QuestionType.MultipleChoiceNumber;
   prompt: string;
   options: MultipleChoiceOption[];
-  correctOptionId: string;
 };
 
 export type SliderNumberQuestion = {
@@ -28,7 +28,6 @@ export type SliderNumberQuestion = {
   min: number;
   max: number;
   step: number;
-  correctValue: number;
 };
 
 export type Tag = {
@@ -41,7 +40,6 @@ export type TagsQuestion = {
   type: QuestionType.Tags;
   prompt: string;
   tags: Tag[];
-  correctTagIds: string[];
   maxSelections: number | null;
 };
 
@@ -50,7 +48,6 @@ export type PriceQuestion = {
   type: QuestionType.Price;
   prompt: string;
   currencySymbol: string;
-  correctValue: number;
 };
 
 export type Question =
@@ -68,16 +65,7 @@ export type Questionnaire = {
   updatedAt: number;
 };
 
-// Sent to players — no correct answers
-export type QuestionForPlayer =
-  | Omit<MultipleChoiceTextQuestion, 'correctOptionId'>
-  | Omit<MultipleChoiceNumberQuestion, 'correctOptionId'>
-  | Omit<SliderNumberQuestion, 'correctValue'>
-  | Omit<TagsQuestion, 'correctTagIds'>
-  | Omit<PriceQuestion, 'correctValue'>;
-
-export type QuestionnaireForPlayer = {
-  id: string;
-  name: string;
-  questions: QuestionForPlayer[];
-};
+// Identical to Questionnaire — questions never contained sensitive data now.
+// Kept as alias so existing imports don't break.
+export type QuestionForPlayer = Question;
+export type QuestionnaireForPlayer = Questionnaire;
