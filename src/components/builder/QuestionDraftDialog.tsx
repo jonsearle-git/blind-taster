@@ -17,6 +17,7 @@ import { TextInput } from '../TextInput';
 import { Button } from '../Button';
 import { ErrorMessage } from '../ErrorMessage';
 import { MultipleChoiceBuilder } from './MultipleChoiceBuilder';
+import { MultipleChoiceNumberBuilder } from './MultipleChoiceNumberBuilder';
 import { SliderBuilder } from './SliderBuilder';
 import { TagsBuilder } from './TagsBuilder';
 import { PriceBuilder } from './PriceBuilder';
@@ -63,12 +64,13 @@ function validate(q: Question): string | null {
 }
 
 type Props = {
-  draftType: QuestionType | null;
-  onConfirm: (q: Question) => void;
-  onCancel:  () => void;
+  draftType:    QuestionType | null;
+  editQuestion: Question | null;
+  onConfirm:    (q: Question) => void;
+  onCancel:     () => void;
 };
 
-export function QuestionDraftDialog({ draftType, onConfirm, onCancel }: Props): React.ReactElement {
+export function QuestionDraftDialog({ draftType, editQuestion, onConfirm, onCancel }: Props): React.ReactElement {
   const { height: windowHeight }          = useWindowDimensions();
   const [draft, setDraft]                 = useState<Question>(() => makeDefault(QuestionType.MultipleChoiceText));
   const [error, setError]                 = useState<string | null>(null);
@@ -116,11 +118,12 @@ export function QuestionDraftDialog({ draftType, onConfirm, onCancel }: Props): 
   }, []);
 
   useEffect(() => {
-    if (draftType !== null) {
-      setDraft(makeDefault(draftType));
-      setError(null);
-    }
+    if (draftType !== null) { setDraft(makeDefault(draftType)); setError(null); }
   }, [draftType]);
+
+  useEffect(() => {
+    if (editQuestion !== null) { setDraft(editQuestion); setError(null); }
+  }, [editQuestion]);
 
   const optionCount = 'options' in draft ? (draft as { options: unknown[] }).options.length : 0;
   const tagCount    = 'tags'    in draft ? (draft as { tags: unknown[] }).tags.length       : 0;
@@ -140,11 +143,15 @@ export function QuestionDraftDialog({ draftType, onConfirm, onCancel }: Props): 
 
   const dialogMaxHeight = windowHeight * 0.65;
 
+  const isEditing = editQuestion !== null;
+  const visible   = draftType !== null || isEditing;
+  const title     = isEditing ? TYPE_LABELS[editQuestion.type] : (draftType !== null ? TYPE_LABELS[draftType] : '');
+
   return (
-    <Modal visible={draftType !== null} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <Pressable style={[styles.dialog, { maxHeight: dialogMaxHeight }]} onPress={Keyboard.dismiss}>
-          <Text style={styles.title}>{draftType !== null ? TYPE_LABELS[draftType] : ''}</Text>
+          <Text style={styles.title}>{title}</Text>
 
           <View style={styles.promptSection}>
             <TextInput
@@ -164,9 +171,15 @@ export function QuestionDraftDialog({ draftType, onConfirm, onCancel }: Props): 
               onScroll={(e) => { scrollOffset.current = e.nativeEvent.contentOffset.y; }}
               contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPadding }]}
             >
-              {(draft.type === QuestionType.MultipleChoiceText || draft.type === QuestionType.MultipleChoiceNumber) && (
+              {draft.type === QuestionType.MultipleChoiceText && (
                 <MultipleChoiceBuilder
-                  options={(draft as MultipleChoiceTextQuestion | MultipleChoiceNumberQuestion).options}
+                  options={(draft as MultipleChoiceTextQuestion).options}
+                  onChange={(opts) => setDraft({ ...draft, options: opts } as Question)}
+                />
+              )}
+              {draft.type === QuestionType.MultipleChoiceNumber && (
+                <MultipleChoiceNumberBuilder
+                  options={(draft as MultipleChoiceNumberQuestion).options}
                   onChange={(opts) => setDraft({ ...draft, options: opts } as Question)}
                 />
               )}
@@ -198,7 +211,7 @@ export function QuestionDraftDialog({ draftType, onConfirm, onCancel }: Props): 
 
           <View style={styles.actions}>
             <Button label="Cancel" onPress={onCancel} variant="secondary" style={styles.btn} />
-            <Button label="Add" onPress={handleConfirm} style={styles.btn} />
+            <Button label={isEditing ? 'Save' : 'Add'} onPress={handleConfirm} style={styles.btn} />
           </View>
         </Pressable>
       </View>

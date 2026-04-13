@@ -14,7 +14,7 @@ type Props = {
   onChange: (options: MultipleChoiceOption[]) => void;
 };
 
-export function MultipleChoiceBuilder({ options, onChange }: Props): React.ReactElement {
+export function MultipleChoiceNumberBuilder({ options, onChange }: Props): React.ReactElement {
   function addOption(): void {
     onChange([...options, { id: uuidv4(), label: '' }]);
   }
@@ -35,8 +35,8 @@ export function MultipleChoiceBuilder({ options, onChange }: Props): React.React
           <TextInput
             value={option.label}
             onChangeText={(text) => updateOption(option.id, text)}
-            placeholder={`Option ${index + 1}`}
-            keyboardType="default"
+            placeholder={`${index + 1}`}
+            keyboardType="numeric"
             containerStyle={styles.optionInput}
           />
           <IconButton

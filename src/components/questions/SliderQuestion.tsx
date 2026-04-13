@@ -16,17 +16,23 @@ type Props = {
 export function SliderQuestion({ question, value, onChange, locked = false }: Props): React.ReactElement {
   const [inputText, setInputText] = useState(value !== null ? String(value) : '');
 
+  const dp = question.step < 0.05 ? 2 : question.step < 0.5 ? 1 : 0;
+
+  function snapToStep(v: number): number {
+    return parseFloat((Math.round(v / question.step) * question.step).toFixed(dp));
+  }
+
   function handleSliderChange(v: number): void {
-    const stepped = Math.round(v / question.step) * question.step;
-    setInputText(String(stepped));
-    onChange(stepped);
+    const snapped = snapToStep(v);
+    setInputText(String(snapped));
+    onChange(snapped);
   }
 
   function handleTextChange(text: string): void {
     setInputText(text);
     const parsed = parseFloat(text);
     if (!isNaN(parsed)) {
-      const clamped = Math.min(Math.max(parsed, question.min), question.max);
+      const clamped = parseFloat(Math.min(Math.max(parsed, question.min), question.max).toFixed(dp));
       onChange(clamped);
     }
   }
@@ -40,7 +46,7 @@ export function SliderQuestion({ question, value, onChange, locked = false }: Pr
           style={[styles.numberInput, locked && styles.locked]}
           value={inputText}
           onChangeText={handleTextChange}
-          keyboardType="numeric"
+          keyboardType={dp > 0 ? 'decimal-pad' : 'numeric'}
           editable={!locked}
           accessibilityLabel={`${question.prompt} value`}
           placeholderTextColor={Colors.textDisabled}

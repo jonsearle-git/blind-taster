@@ -1,7 +1,8 @@
-import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
-import { useState } from 'react';
+import { StyleSheet, View, Text, FlatList, Pressable, Modal, Keyboard, TextInput as RNTextInput, ScrollView, useWindowDimensions } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { v4 as uuidv4 } from 'uuid';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
@@ -9,6 +10,7 @@ import { HostStackParamList } from '../../types/navigation';
 import { Round } from '../../types/game';
 import { Answer } from '../../types/answer';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
+import { useGames } from '../../hooks/useGames';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { TextInput } from '../../components/TextInput';
 import { Button } from '../../components/Button';
@@ -28,17 +30,73 @@ function makeRounds(n: number, existing: Round[] = []): Round[] {
 }
 
 export default function RoundsBuilderScreen(): React.ReactElement {
-  const navigation = useNavigation<Nav>();
-  const route      = useRoute<Route>();
-  const { questionnaireId } = route.params;
-  const { questionnaires }  = useQuestionnaires();
+  const navigation              = useNavigation<Nav>();
+  const route                   = useRoute<Route>();
+  const { gameId, questionnaireId: paramQuestionnaireId } = route.params ?? {};
+  const { questionnaires }      = useQuestionnaires();
+  const { games, save: saveGame } = useGames();
+
+  const existingGame = gameId ? games.find((g) => g.id === gameId) : undefined;
+
+  const [gameName,          setGameName]          = useState('');
+  const [questionnaireId,   setQuestionnaireId]   = useState<string | null>(paramQuestionnaireId ?? null);
+  const [rounds,            setRounds]            = useState<Round[]>(makeRounds(3));
+  const [answerDialogRound, setAnswerDialogRound] = useState<number | null>(null);
+  const [error,             setError]             = useState<string | null>(null);
+  const [saving,            setSaving]            = useState(false);
+  const [showQPicker,       setShowQPicker]       = useState(false);
+
+  const flatListRef      = useRef<FlatList>(null);
+  const scrollOffsetRef  = useRef(0);
+  const keyboardTopRef   = useRef(0);
+  const [listPadding,    setListPadding]   = useState<number>(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      const kbTop = e.endCoordinates.screenY;
+      keyboardTopRef.current = kbTop;
+      // Pad content so FlatList has room to scroll
+      setListPadding(e.endCoordinates.height + Spacing.xl);
+      setTimeout(() => {
+        const focused = RNTextInput.State.currentlyFocusedInput();
+        if (!focused) return;
+        focused.measure((_x, _y, _w, h, _px, py) => {
+          const inputBottom = py + h + Spacing.md;
+          if (inputBottom > kbTop) {
+            flatListRef.current?.scrollToOffset({
+              offset: scrollOffsetRef.current + (inputBottom - kbTop),
+              animated: true,
+            });
+          }
+        });
+      }, 50);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTopRef.current = 0;
+      setListPadding(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  // Load existing game if editing
+  useEffect(() => {
+    if (existingGame) {
+      setGameName(existingGame.name);
+      setQuestionnaireId(existingGame.questionnaireId);
+      setRounds(existingGame.rounds);
+    }
+  }, [existingGame]);
+
+  // Auto-fill game name from questionnaire when first selected
+  useEffect(() => {
+    if (questionnaireId && !gameName) {
+      const q = questionnaires.find((q) => q.id === questionnaireId);
+      if (q) setGameName(q.name);
+    }
+  }, [questionnaireId]);
 
   const questionnaire = questionnaires.find((q) => q.id === questionnaireId) ?? null;
   const questions     = questionnaire?.questions ?? [];
-
-  const [rounds, setRounds]     = useState<Round[]>(makeRounds(3));
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [error, setError]       = useState<string | null>(null);
 
   function handleCountChange(text: string): void {
     const n = Math.min(Math.max(parseInt(text, 10) || 1, 1), 20);
@@ -61,27 +119,66 @@ export default function RoundsBuilderScreen(): React.ReactElement {
     );
   }
 
-  function handleContinue(): void {
-    if (!questionnaire) { setError('Questionnaire not found.'); return; }
-    // Validate: every round must have a correct answer for every question
+  async function handleContinue(): Promise<void> {
+    if (!questionnaireId || !questionnaire) { setError('Select a questionnaire first.'); return; }
+    if (!gameName.trim()) { setError('Give this game a name.'); return; }
     for (const round of rounds) {
       for (const q of questions) {
         if (!round.correctAnswers.find((a) => a.questionId === q.id)) {
           setError(`Round ${round.number}: set a correct answer for every question.`);
-          setExpanded(round.number);
+          setAnswerDialogRound(round.number);
           return;
         }
       }
     }
     setError(null);
-    navigation.navigate('HostLobby', { questionnaireId, rounds });
+    setSaving(true);
+    try {
+      const now = Date.now();
+      await saveGame({
+        id:              existingGame?.id ?? uuidv4(),
+        name:            gameName.trim(),
+        questionnaireId,
+        rounds,
+        createdAt:       existingGame?.createdAt ?? now,
+        updatedAt:       now,
+      });
+      navigation.navigate('HostLobby', { questionnaireId, rounds });
+    } catch {
+      setError('Failed to save game. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
+  const { height: windowHeight } = useWindowDimensions();
+  const dialogRound = answerDialogRound !== null
+    ? rounds.find((r) => r.number === answerDialogRound) ?? null
+    : null;
+
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Set Up Rounds</Text>
-        <Text style={styles.subtitle}>How many items are being tested?</Text>
+    <ScreenContainer onPress={Keyboard.dismiss}>
+      <TextInput
+        label="Game Name"
+        value={gameName}
+        onChangeText={setGameName}
+        placeholder="e.g. Wine Night 2025"
+      />
+
+      {/* Questionnaire selector */}
+      <View style={styles.qSelectorContainer}>
+        <Text style={styles.qSelectorLabel}>Questionnaire</Text>
+        <Pressable
+          onPress={() => setShowQPicker(true)}
+          style={styles.qSelector}
+          accessibilityRole="button"
+          accessibilityLabel="Select questionnaire"
+        >
+          <Text style={[styles.qSelectorValue, !questionnaire && styles.qSelectorPlaceholder]}>
+            {questionnaire ? questionnaire.name : 'Tap to select…'}
+          </Text>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
       </View>
 
       <TextInput
@@ -91,37 +188,83 @@ export default function RoundsBuilderScreen(): React.ReactElement {
         keyboardType="number-pad"
       />
 
-      <View style={styles.notice}>
-        <Text style={styles.noticeText}>
-          Round labels and correct answers are hidden from players until the end of the game.
-        </Text>
-      </View>
-
       {error !== null && <ErrorMessage message={error} />}
 
       <Divider />
 
       <FlatList
+        ref={flatListRef}
         data={rounds}
         keyExtractor={(item) => String(item.number)}
+        onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: listPadding }}
         ItemSeparatorComponent={() => <Divider spacing={Spacing.sm} />}
         renderItem={({ item }) => (
           <RoundEditor
             round={item}
             questions={questions}
-            expanded={expanded === item.number}
-            onToggle={() => setExpanded(expanded === item.number ? null : item.number)}
+            onOpenAnswers={() => setAnswerDialogRound(item.number)}
             onLabelChange={(label) => handleLabelChange(item.number, label)}
-            onAnswerChange={(answer) => handleAnswerChange(item.number, answer)}
           />
         )}
       />
 
-      <Button
-        label="Continue to Lobby"
-        onPress={handleContinue}
-        style={styles.proceed}
-      />
+      <Button label="Save & Continue to Lobby" onPress={handleContinue} loading={saving} style={styles.proceed} />
+
+      {/* Answers dialog */}
+      <Modal
+        visible={answerDialogRound !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAnswerDialogRound(null)}
+      >
+        <View style={styles.backdrop}>
+          <View style={[styles.answersSheet, { maxHeight: windowHeight * 0.75 }]}>
+            <Text style={styles.sheetTitle}>
+              Round {dialogRound?.number}{dialogRound?.label ? `: ${dialogRound.label}` : ''}
+            </Text>
+            <ScrollView contentContainerStyle={styles.answersScrollContent}>
+              {questions.map((q, index) => (
+                <View key={q.id} style={styles.questionBlock}>
+                  <Text style={styles.questionIndex}>Q{index + 1} — {q.prompt || `Question ${index + 1}`}</Text>
+                  <QuestionInput
+                    question={q}
+                    answer={dialogRound?.correctAnswers.find((a) => a.questionId === q.id) ?? null}
+                    onAnswer={(answer) => {
+                      if (answerDialogRound !== null) handleAnswerChange(answerDialogRound, answer);
+                    }}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+            <Button label="Done" onPress={() => setAnswerDialogRound(null)} style={styles.dialogDone} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Questionnaire picker modal */}
+      <Modal visible={showQPicker} transparent animationType="slide" onRequestClose={() => setShowQPicker(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setShowQPicker(false)}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Choose Questionnaire</Text>
+            {questionnaires.map((q) => (
+              <Pressable
+                key={q.id}
+                onPress={() => { setQuestionnaireId(q.id); setShowQPicker(false); }}
+                style={({ pressed }) => [styles.sheetOption, pressed && styles.sheetOptionPressed]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.sheetOptionName}>{q.name}</Text>
+                <Text style={styles.sheetOptionMeta}>{q.questions.length} questions</Text>
+              </Pressable>
+            ))}
+            {questionnaires.length === 0 && (
+              <Text style={styles.sheetEmpty}>No questionnaires yet. Create one first.</Text>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -129,69 +272,50 @@ export default function RoundsBuilderScreen(): React.ReactElement {
 type RoundEditorProps = {
   round:          Round;
   questions:      import('../../types/questionnaire').Question[];
-  expanded:       boolean;
-  onToggle:       () => void;
+  onOpenAnswers:  () => void;
   onLabelChange:  (label: string) => void;
-  onAnswerChange: (answer: Answer) => void;
 };
 
-function RoundEditor({ round, questions, expanded, onToggle, onLabelChange, onAnswerChange }: RoundEditorProps): React.ReactElement {
+function RoundEditor({ round, questions, onOpenAnswers, onLabelChange }: RoundEditorProps): React.ReactElement {
   const answeredCount = round.correctAnswers.length;
   const totalCount    = questions.length;
   const allAnswered   = answeredCount >= totalCount && totalCount > 0;
 
   return (
-    <View>
-      <View style={styles.roundRow}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{round.number}</Text>
-        </View>
-        <TextInput
-          value={round.label ?? ''}
-          onChangeText={onLabelChange}
-          placeholder={`Round ${round.number} label…`}
-          containerStyle={styles.labelInput}
-        />
-        {questions.length > 0 && (
-          <Pressable
-            onPress={onToggle}
-            style={[styles.answersBadge, allAnswered && styles.answersBadgeDone]}
-            accessibilityRole="button"
-            accessibilityLabel={`Set correct answers for round ${round.number}`}
-          >
-            <Text style={[styles.answersBadgeText, allAnswered && styles.answersBadgeTextDone]}>
-              {allAnswered ? '✓' : `${answeredCount}/${totalCount}`}
-            </Text>
-          </Pressable>
-        )}
+    <View style={styles.roundRow}>
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{round.number}</Text>
       </View>
-
-      {expanded && questions.length > 0 && (
-        <View style={styles.answersSection}>
-          <Text style={styles.answersTitle}>Correct answers for Round {round.number}</Text>
-          {questions.map((q, index) => (
-            <View key={q.id} style={styles.questionBlock}>
-              <Text style={styles.questionIndex}>Q{index + 1} — {q.prompt || `Question ${index + 1}`}</Text>
-              <QuestionInput
-                question={q}
-                answer={round.correctAnswers.find((a) => a.questionId === q.id) ?? null}
-                onAnswer={onAnswerChange}
-              />
-            </View>
-          ))}
-        </View>
+      <TextInput
+        value={round.label ?? ''}
+        onChangeText={onLabelChange}
+        placeholder={`Round ${round.number} label…`}
+        containerStyle={styles.labelInput}
+      />
+      {questions.length > 0 && (
+        <Pressable
+          onPress={onOpenAnswers}
+          style={[styles.answersBadge, allAnswered && styles.answersBadgeDone]}
+          accessibilityRole="button"
+          accessibilityLabel={`Set correct answers for round ${round.number}`}
+        >
+          <Text style={[styles.answersBadgeText, allAnswered && styles.answersBadgeTextDone]}>
+            {allAnswered ? '✓' : `${answeredCount}/${totalCount}`}
+          </Text>
+        </Pressable>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header:               { paddingVertical: Spacing.lg, gap: Spacing.xs },
-  title:                { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: FontWeight.black },
-  subtitle:             { color: Colors.textSecondary, fontSize: FontSize.md },
-  notice:               { backgroundColor: Colors.surfaceElevated, borderRadius: Spacing.sm, borderLeftWidth: 3, borderLeftColor: Colors.gold, padding: Spacing.md, marginVertical: Spacing.sm },
-  noticeText:           { color: Colors.textSecondary, fontSize: FontSize.sm },
-  roundRow:             { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  qSelectorContainer:   { gap: Spacing.xs },
+  qSelector:            { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 48 },
+  qSelectorLabel:       { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+  qSelectorValue:       { flex: 1, color: Colors.textPrimary, fontSize: FontSize.md },
+  qSelectorPlaceholder: { color: Colors.textDisabled },
+  chevron:              { color: Colors.textDisabled, fontSize: FontSize.xl },
+roundRow:             { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
   badge:                { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   badgeText:            { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
   labelInput:           { flex: 1 },
@@ -199,9 +323,18 @@ const styles = StyleSheet.create({
   answersBadgeDone:     { borderColor: Colors.success, backgroundColor: Colors.success + '22' },
   answersBadgeText:     { color: Colors.textDisabled, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
   answersBadgeTextDone: { color: Colors.success },
-  answersSection:       { marginTop: Spacing.sm, marginLeft: Spacing.xl, backgroundColor: Colors.surface, borderRadius: Spacing.sm, padding: Spacing.md, gap: Spacing.lg, borderLeftWidth: 2, borderLeftColor: Colors.surfaceElevated },
-  answersTitle:         { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
+  answersSheet:         { backgroundColor: Colors.surface, borderTopLeftRadius: Spacing.lg, borderTopRightRadius: Spacing.lg, padding: Spacing.lg, gap: Spacing.md, borderTopWidth: 1, borderColor: Colors.border },
+  answersScrollContent: { gap: Spacing.lg },
   questionBlock:        { gap: Spacing.sm },
   questionIndex:        { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+  dialogDone:           { marginTop: Spacing.xs },
   proceed:              { marginTop: Spacing.lg },
+  backdrop:             { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
+  sheet:                { backgroundColor: Colors.surface, borderTopLeftRadius: Spacing.lg, borderTopRightRadius: Spacing.lg, padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1, borderColor: Colors.border },
+  sheetTitle:           { color: Colors.textPrimary, fontSize: FontSize.lg, fontWeight: FontWeight.bold, marginBottom: Spacing.sm },
+  sheetOption:          { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderRadius: Spacing.sm, gap: 2 },
+  sheetOptionPressed:   { backgroundColor: Colors.surfaceElevated },
+  sheetOptionName:      { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
+  sheetOptionMeta:      { color: Colors.textSecondary, fontSize: FontSize.sm },
+  sheetEmpty:           { color: Colors.textDisabled, fontSize: FontSize.md, textAlign: 'center', paddingVertical: Spacing.md },
 });

@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
@@ -12,6 +12,12 @@ type Props = {
 };
 
 export function SliderBuilder({ min, max, step, onChange }: Props): React.ReactElement {
+  const allowDecimals = step < 1;
+
+  function toggleDecimals(): void {
+    onChange({ min, max, step: allowDecimals ? 1 : 0.01 });
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Range</Text>
@@ -30,32 +36,50 @@ export function SliderBuilder({ min, max, step, onChange }: Props): React.ReactE
           keyboardType="numeric"
           containerStyle={styles.field}
         />
-        <TextInput
-          label="Step"
-          value={String(step)}
-          onChangeText={(t) => onChange({ min, max, step: parseFloat(t) || 1 })}
-          keyboardType="numeric"
-          containerStyle={styles.field}
-        />
       </View>
+
+      <Pressable onPress={toggleDecimals} style={styles.checkRow} accessibilityRole="checkbox" accessibilityState={{ checked: allowDecimals }}>
+        <View style={[styles.checkbox, allowDecimals && styles.checkboxChecked]}>
+          {allowDecimals && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <Text style={styles.checkLabel}>Allow decimals</Text>
+      </Pressable>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.sm,
-  },
+  container: { gap: Spacing.sm },
   label: {
     color:      Colors.textSecondary,
     fontSize:   FontSize.sm,
     fontWeight: FontWeight.medium,
   },
-  row: {
+  row:   { flexDirection: 'row', gap: Spacing.sm },
+  field: { flex: 1 },
+
+  checkRow: {
     flexDirection: 'row',
+    alignItems:    'center',
+    alignSelf:     'flex-start',
     gap:           Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
-  field: {
-    flex: 1,
+  checkbox: {
+    width:        22,
+    height:       22,
+    borderRadius: 4,
+    borderWidth:  2,
+    borderColor:  Colors.border,
+    alignItems:   'center',
+    justifyContent: 'center',
   },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor:     Colors.primary,
+  },
+  checkmark: { color: Colors.textPrimary, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  checkLabel: { color: Colors.textPrimary, fontSize: FontSize.md },
+
 });

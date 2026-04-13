@@ -4,6 +4,8 @@ import { HostStackParamList, HostInGameTabParamList } from '../types/navigation'
 import { Colors } from '../constants/colors';
 import { FontSize, FontWeight } from '../constants/typography';
 import SetupGameScreen from '../screens/host/SetupGameScreen';
+import QuestionnairesScreen from '../screens/host/QuestionnairesScreen';
+import GamesScreen from '../screens/host/GamesScreen';
 import QuestionnaireBuilderScreen from '../screens/host/QuestionnaireBuilderScreen';
 import RoundsBuilderScreen from '../screens/host/RoundsBuilderScreen';
 import HostLobbyScreen from '../screens/host/HostLobbyScreen';
@@ -47,6 +49,8 @@ export function HostNavigator(): React.ReactElement {
       }}
     >
       <Stack.Screen name="SetupGame"            component={SetupGameScreen}            options={{ title: 'Host a Game' }} />
+      <Stack.Screen name="Questionnaires"       component={QuestionnairesScreen}       options={{ title: 'Questionnaires' }} />
+      <Stack.Screen name="Games"                component={GamesScreen}                options={{ title: 'Games' }} />
       <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} options={{ title: 'Questionnaire' }} />
       <Stack.Screen name="RoundsBuilder"        component={RoundsBuilderScreen}        options={{ title: 'Set Up Rounds' }} />
       <Stack.Screen name="HostLobby"            component={HostLobbyScreen}            options={{ headerShown: false }} />

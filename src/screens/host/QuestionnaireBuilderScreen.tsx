@@ -56,11 +56,11 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
 
   const [name, setName]             = useState('');
   const [questions, setQuestions]   = useState<Question[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [error, setError]           = useState<string | null>(null);
-  const [saving, setSaving]         = useState(false);
-  const [showPicker, setShowPicker] = useState(false);
-  const [draftType, setDraftType]   = useState<QuestionType | null>(null);
+  const [error,          setError]          = useState<string | null>(null);
+  const [saving,         setSaving]         = useState(false);
+  const [showPicker,     setShowPicker]     = useState(false);
+  const [draftType,      setDraftType]      = useState<QuestionType | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     navigation.setOptions({ title: existingId ? 'Edit Questionnaire' : 'New Questionnaire' });
@@ -72,9 +72,14 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
     if (existing) { setName(existing.name); setQuestions(existing.questions); }
   }, [existingId, questionnaires]);
 
-  function handleAdd(q: Question): void {
-    setQuestions((prev) => [...prev, q]);
-    setDraftType(null);
+  function handleConfirm(q: Question): void {
+    if (editingQuestion !== null) {
+      setQuestions((prev) => prev.map((x) => (x.id === q.id ? q : x)));
+      setEditingQuestion(null);
+    } else {
+      setQuestions((prev) => [...prev, q]);
+      setDraftType(null);
+    }
   }
 
   async function handleSave(): Promise<void> {
@@ -119,9 +124,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
             <QuestionAccordionItem
               question={item}
               index={index}
-              expanded={expandedId === item.id}
-              onToggle={() => setExpandedId((prev) => (prev === item.id ? null : item.id))}
-              onUpdate={(q) => setQuestions((prev) => prev.map((x) => (x.id === q.id ? q : x)))}
+              onEdit={() => setEditingQuestion(item)}
               onRemove={(id) => setQuestions((prev) => prev.filter((x) => x.id !== id))}
             />
           )}
@@ -153,8 +156,9 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
 
       <QuestionDraftDialog
         draftType={draftType}
-        onConfirm={handleAdd}
-        onCancel={() => setDraftType(null)}
+        editQuestion={editingQuestion}
+        onConfirm={handleConfirm}
+        onCancel={() => { setDraftType(null); setEditingQuestion(null); }}
       />
     </ScreenContainer>
   );

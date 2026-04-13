@@ -9,8 +9,10 @@ export type RootStackParamList = {
 
 export type HostStackParamList = {
   SetupGame:            undefined;
+  Questionnaires:       undefined;
+  Games:                undefined;
   QuestionnaireBuilder: { questionnaireId?: string };
-  RoundsBuilder:        { questionnaireId: string };
+  RoundsBuilder:        { gameId?: string; questionnaireId?: string };
   HostLobby:            { questionnaireId: string; rounds: Round[] };
   HostInGame:           undefined;
   HostResults:          { results: GameResults };

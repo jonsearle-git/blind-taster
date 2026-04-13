@@ -1,105 +1,39 @@
-import { StyleSheet, View, Text, FlatList, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { GamePhase } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
-import { Questionnaire } from '../../types/questionnaire';
-import { useGameContext } from '../../context/GameContext';
-import { useQuestionnaires } from '../../hooks/useQuestionnaires';
-import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
-import { Divider } from '../../components/Divider';
 
 type Nav = NativeStackNavigationProp<HostStackParamList>;
 
-function isActiveGame(phase: GamePhase | undefined): boolean {
-  return phase !== undefined && phase !== GamePhase.GameOver;
-}
-
 export default function SetupGameScreen(): React.ReactElement {
-  const navigation              = useNavigation<Nav>();
-  const { state, dispatch }     = useGameContext();
-  const { questionnaires, loading, error } = useQuestionnaires();
-
-  function doSelect(q: Questionnaire): void {
-    dispatch({ type: 'RESET' });
-    navigation.navigate('RoundsBuilder', { questionnaireId: q.id });
-  }
-
-  function handleSelect(q: Questionnaire): void {
-    if (isActiveGame(state.gameState?.phase)) {
-      Alert.alert(
-        'Already in a Game',
-        "You're currently in another game. Leave that game and start a new one?",
-        [
-          { text: 'Stay in Current Game', style: 'cancel' },
-          { text: 'Leave & Start New Game', style: 'destructive', onPress: () => doSelect(q) },
-        ]
-      );
-      return;
-    }
-    doSelect(q);
-  }
+  const navigation = useNavigation<Nav>();
 
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Host a Game</Text>
-        <Text style={styles.subtitle}>Choose a questionnaire</Text>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <View style={styles.container}>
+        <View style={styles.hero}>
+          <Text style={styles.title}>Host a Game</Text>
+          <Text style={styles.subtitle}>Manage your questionnaires and saved games</Text>
+        </View>
+        <View style={styles.actions}>
+          <Button label="Questionnaires" onPress={() => navigation.navigate('Questionnaires')} />
+          <Button label="Games" onPress={() => navigation.navigate('Games')} variant="secondary" />
+        </View>
       </View>
-
-      <Button
-        label="Create New Questionnaire"
-        onPress={() => { dispatch({ type: 'RESET' }); navigation.navigate('QuestionnaireBuilder', {}); }}
-        variant="secondary"
-      />
-
-      <Divider />
-
-      {loading && <LoadingSpinner message="Loading…" />}
-      {error !== null && <ErrorMessage message={error} />}
-      {!loading && questionnaires.length === 0 && (
-        <EmptyState title="No questionnaires saved" message="Create one above to get started." />
-      )}
-      {!loading && questionnaires.length > 0 && (
-        <FlatList
-          data={questionnaires}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <Divider spacing={0} />}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => handleSelect(item)}
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={`Use ${item.name}`}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.rowMeta}>{item.questions.length} questions</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          )}
-        />
-      )}
-    </ScreenContainer>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  header:     { paddingVertical: Spacing.lg, gap: Spacing.xs },
-  title:      { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: FontWeight.black },
-  subtitle:   { color: Colors.textSecondary, fontSize: FontSize.md },
-  row:        { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
-  rowPressed: { opacity: 0.7 },
-  rowText:    { flex: 1, gap: Spacing.xs },
-  rowName:    { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  rowMeta:    { color: Colors.textSecondary, fontSize: FontSize.sm },
-  chevron:    { color: Colors.textDisabled, fontSize: FontSize.xl },
+  safe:      { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, padding: Spacing.lg, justifyContent: 'center', gap: Spacing.xl },
+  hero:      { alignItems: 'center', gap: Spacing.sm },
+  title:     { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: FontWeight.black },
+  subtitle:  { color: Colors.textSecondary, fontSize: FontSize.md, textAlign: 'center' },
+  actions:   { gap: Spacing.sm },
 });
