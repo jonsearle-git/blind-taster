@@ -12,7 +12,6 @@ import { usePartySocket } from '../../hooks/usePartySocket';
 import { useGameState } from '../../hooks/useGameState';
 import { usePlayerActions } from '../../hooks/usePlayerActions';
 import { ScreenContainer } from '../../components/ScreenContainer';
-import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
 import { TextInput } from '../../components/TextInput';
 
@@ -111,9 +110,7 @@ export default function JoinGameScreen(): React.ReactElement {
   }
 
   return (
-    <ScreenContainer noPadding>
-      <Banner title="Join Game" />
-
+    <ScreenContainer>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

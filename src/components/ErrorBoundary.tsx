@@ -20,8 +20,8 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true };
   }
 
-  componentDidCatch(_error: Error, _info: ErrorInfo): void {
-    // Future: send to crash reporting service
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('[ErrorBoundary]', error.message, error.stack, info.componentStack);
   }
 
   private handleReset = (): void => {

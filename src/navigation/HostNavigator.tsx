@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HostStackParamList, HostInGameTabParamList } from '../types/navigation';
 import { Colors } from '../constants/colors';
-import { FontSize } from '../constants/typography';
+import { FontSize, FontWeight } from '../constants/typography';
 import SetupGameScreen from '../screens/host/SetupGameScreen';
 import QuestionnaireBuilderScreen from '../screens/host/QuestionnaireBuilderScreen';
 import RoundsBuilderScreen from '../screens/host/RoundsBuilderScreen';
@@ -38,13 +38,20 @@ function HostInGameTabs(): React.ReactElement {
 
 export function HostNavigator(): React.ReactElement {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="SetupGame"            component={SetupGameScreen} />
-      <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} />
-      <Stack.Screen name="RoundsBuilder"        component={RoundsBuilderScreen} />
-      <Stack.Screen name="HostLobby"            component={HostLobbyScreen} />
-      <Stack.Screen name="HostInGame"           component={HostInGameTabs} />
-      <Stack.Screen name="HostResults"          component={HostResultsScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle:      { backgroundColor: Colors.surface },
+        headerTintColor:  Colors.textPrimary,
+        headerTitleStyle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="SetupGame"            component={SetupGameScreen}            options={{ title: 'Host a Game' }} />
+      <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} options={{ title: 'Questionnaire' }} />
+      <Stack.Screen name="RoundsBuilder"        component={RoundsBuilderScreen}        options={{ title: 'Set Up Rounds' }} />
+      <Stack.Screen name="HostLobby"            component={HostLobbyScreen}            options={{ headerShown: false }} />
+      <Stack.Screen name="HostInGame"           component={HostInGameTabs}             options={{ headerShown: false }} />
+      <Stack.Screen name="HostResults"          component={HostResultsScreen}          options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

@@ -1,3 +1,4 @@
+import './src/polyfills'; // must be first — no imports, runs before partysocket evaluates
 import 'react-native-get-random-values';
 import { registerRootComponent } from 'expo';
 
