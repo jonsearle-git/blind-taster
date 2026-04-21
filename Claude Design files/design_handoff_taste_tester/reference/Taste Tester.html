@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Taste Tester — Brand Canvas</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Rubik+Mono+One&family=Space+Grotesk:wght@400;500;600;700&family=Bungee&family=Bungee+Inline&family=Nunito:wght@400;700;800;900&family=Lilita+One&family=Fredoka:wght@400;500;600;700&family=Alfa+Slab+One&family=Fraunces:wght@400;700;900&family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin:0; padding:0; background:#f0eee9; font-family: 'Space Grotesk', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  /* Tweaks panel */
+  .tt-tweaks {
+    position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+    background: #fff; border-radius: 16px; padding: 18px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06);
+    width: 260px; font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+  .tt-tweaks h3 { margin:0 0 10px; font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#2B1055; }
+  .tt-tweaks label { display:block; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:rgba(43,16,85,.6); margin:12px 0 4px; }
+  .tt-tweaks select { width:100%; padding:8px 10px; font-size:14px; border:1.5px solid rgba(43,16,85,.2); border-radius:8px; background:#fff; font-family:inherit; cursor:pointer; }
+  .tt-tweaks select:focus { outline:none; border-color:#3D1766; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tt-theme.jsx"></script>
+<script type="text/babel" src="tt-logo.jsx"></script>
+<script type="text/babel" src="tt-splash.jsx"></script>
+<script type="text/babel" src="tt-screens.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "Candy Pop",
+  "fontPairing": "Fraunces + DM",
+  "cardFeel": "Sticker"
+}/*EDITMODE-END*/;
+
+function TweaksPanel({ visible, values, onChange }) {
+  if (!visible) return null;
+  return (
+    <div className="tt-tweaks">
+      <h3>Tweaks</h3>
+      <label>Palette</label>
+      <select value={values.palette} onChange={(e)=>onChange({palette:e.target.value})}>
+        {Object.keys(TT_PALETTES).map(k => <option key={k}>{k}</option>)}
+      </select>
+      <label>Font pairing</label>
+      <select value={values.fontPairing} onChange={(e)=>onChange({fontPairing:e.target.value})}>
+        {Object.keys(TT_FONTS).map(k => <option key={k}>{k}</option>)}
+      </select>
+      <label>Card feel</label>
+      <select value={values.cardFeel} onChange={(e)=>onChange({cardFeel:e.target.value})}>
+        {Object.keys(TT_CARD_FEELS).map(k => <option key={k}>{k}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function App() {
+  const [values, setValues] = React.useState(TWEAK_DEFAULTS);
+  const [editMode, setEditMode] = React.useState(false);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.type === '__activate_edit_mode') setEditMode(true);
+      if (d.type === '__deactivate_edit_mode') setEditMode(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const update = (partial) => {
+    const next = { ...values, ...partial };
+    setValues(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: partial }, '*');
+  };
+
+  const p  = TT_PALETTES[values.palette] || TT_PALETTES['Candy Pop'];
+  const f  = TT_FONTS[values.fontPairing] || TT_FONTS['Rubik + Grotesk'];
+  const cf = TT_CARD_FEELS[values.cardFeel] || TT_CARD_FEELS['Sticker'];
+
+  // Shared wrapper for iOS device variants so the frame scale is consistent
+  const Phone = ({ children }) => (
+    <div style={{ width:402, height:874, transform:'scale(0.82)', transformOrigin:'top left' }}>
+      <IOSDevice width={402} height={874}>{children}</IOSDevice>
+    </div>
+  );
+
+  // Canvas uses fixed-size artboards; we scale phones down to fit 340x720
+  const phoneArtboard = { width: 340, height: 726 };
+
+  return (
+    <>
+      <DesignCanvas>
+
+        {/* ── LOGO ─────────────────────────────────────────────── */}
+        <DCSection id="logo" title="Logo" subtitle="Monogram + wordmark lockup — horizontal, stacked, and mono variants">
+
+          <DCArtboard id="primary" label="Primary · horizontal" width={760} height={320}>
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background: p.cream }}>
+              <TTLockup size={1} palette={p} layout="horizontal" tone="dark" font={f.display}/>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="stacked" label="Stacked · on brand" width={520} height={540}>
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', padding:30,
+              background:`radial-gradient(circle at 30% 30%, ${p.sun}, ${p.melon} 70%, ${p.plum})` }}>
+              <TTLockup size={1} palette={p} layout="stacked" tone="light" font={f.display}/>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="mono-dark" label="Mono · dark on cream" width={560} height={260}>
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background: p.cream }}>
+              <TTLockup size={0.75} palette={p} layout="horizontal" tone="dark" font={f.display}/>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="mono-light" label="Mono · light on ink" width={560} height={260}>
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background: p.ink }}>
+              <TTLockup size={0.75} palette={p} layout="horizontal" tone="light" font={f.display}/>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="monogram" label="Monogram · app icon" width={360} height={360}>
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background: p.cream }}>
+              <TTMonogram size={240} palette={p}/>
+            </div>
+          </DCArtboard>
+
+        </DCSection>
+
+        {/* ── SPLASH SCREENS ───────────────────────────────────── */}
+        <DCSection id="splash" title="Splash Screens" subtitle="Four directions — gradient wash, big stacked, tickertape, ring pour">
+
+          <DCArtboard id="sp1" label="A · Gradient wash" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTSplash1 palette={p} fonts={f}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="sp2" label="B · Big stacked" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTSplash2 palette={p} fonts={f}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="sp3" label="C · Tickertape" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTSplash3 palette={p} fonts={f}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="sp4" label="D · Ring pour" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTSplash4 palette={p} fonts={f}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+        </DCSection>
+
+        {/* ── IN-GAME SCREENS ──────────────────────────────────── */}
+        <DCSection id="screens" title="In-game screens" subtitle="Round questionnaire and lobby — using current card feel">
+
+          <DCArtboard id="round" label="Round · questionnaire" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTRoundScreen palette={p} fonts={f} cardFeel={cf}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="lobby" label="Lobby · waiting room" width={phoneArtboard.width} height={phoneArtboard.height}>
+            <div style={{ transform:'scale(0.845)', transformOrigin:'top left' }}>
+              <IOSDevice width={402} height={860}>
+                <TTLobbyScreen palette={p} fonts={f} cardFeel={cf}/>
+              </IOSDevice>
+            </div>
+          </DCArtboard>
+
+        </DCSection>
+
+        {/* ── THEME SHEET ──────────────────────────────────────── */}
+        <DCSection id="theme" title="Theme sheet" subtitle="Palette, typography, and decorative motifs">
+
+          <DCArtboard id="theme-sheet" label="Brand system" width={720} height={1100}>
+            <TTThemeSheet palette={p} fonts={f} cardFeel={cf}/>
+          </DCArtboard>
+
+          <DCArtboard id="app-icon" label="App icon grid" width={460} height={620}>
+            <TTAppIconGrid palette={p} fonts={f}/>
+          </DCArtboard>
+
+        </DCSection>
+
+      </DesignCanvas>
+
+      <TweaksPanel visible={editMode} values={values} onChange={update}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+</body>
+</html>
