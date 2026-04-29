@@ -38,12 +38,6 @@ const tagsQ: Question = {
   id: 'q4',
   type: QuestionType.Tags,
   prompt: 'Select flavour notes',
-  tags: [
-    { id: 't1', label: 'Cherry' },
-    { id: 't2', label: 'Oak' },
-    { id: 't3', label: 'Vanilla' },
-  ],
-  maxSelections: null,
 };
 
 const priceQ: Question = {
@@ -58,7 +52,7 @@ const priceQ: Question = {
 const mcTextCorrect:  Answer = { questionId: 'q1', type: QuestionType.MultipleChoiceText,   selectedOptionId: 'a' };
 const mcNumCorrect:   Answer = { questionId: 'q2', type: QuestionType.MultipleChoiceNumber, selectedOptionId: 'y' };
 const sliderCorrect:  Answer = { questionId: 'q3', type: QuestionType.SliderNumber,         value: 7 };
-const tagsCorrect:    Answer = { questionId: 'q4', type: QuestionType.Tags,                 selectedTagIds: ['t1', 't3'] };
+const tagsCorrect:    Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['Cherry', 'Vanilla'] };
 const priceCorrect:   Answer = { questionId: 'q5', type: QuestionType.Price,                value: 20 };
 
 // ─── scoreAnswer ─────────────────────────────────────────────────────────────
@@ -121,23 +115,28 @@ describe('scoreAnswer', () => {
 
   describe('Tags', () => {
     it('awards 100 for all correct tags', () => {
-      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, selectedTagIds: ['t1', 't3'] };
+      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['Cherry', 'Vanilla'] };
+      expect(scoreAnswer(tagsQ, answer, tagsCorrect)).toBe(100);
+    });
+
+    it('awards 100 case-insensitively', () => {
+      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['cherry', 'VANILLA'] };
       expect(scoreAnswer(tagsQ, answer, tagsCorrect)).toBe(100);
     });
 
     it('awards partial score for some correct tags', () => {
-      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, selectedTagIds: ['t1'] };
+      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['Cherry'] };
       expect(scoreAnswer(tagsQ, answer, tagsCorrect)).toBe(50);
     });
 
     it('awards 0 for no matching tags', () => {
-      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, selectedTagIds: ['t2'] };
+      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['Oak'] };
       expect(scoreAnswer(tagsQ, answer, tagsCorrect)).toBe(0);
     });
 
     it('awards 100 when correct has no tags', () => {
-      const emptyCorrect: Answer = { questionId: 'q4', type: QuestionType.Tags, selectedTagIds: [] };
-      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, selectedTagIds: ['t2'] };
+      const emptyCorrect: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: [] };
+      const answer: Answer = { questionId: 'q4', type: QuestionType.Tags, tags: ['Oak'] };
       expect(scoreAnswer(tagsQ, answer, emptyCorrect)).toBe(100);
     });
   });

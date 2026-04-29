@@ -13,6 +13,7 @@ export type ServerMessage =
   | { type: 'player_admitted';    payload: { playerId: string; name: string } }
   | { type: 'player_denied';      payload: { playerId: string } }
   | { type: 'you_were_denied' }
+  | { type: 'name_taken' }
   | { type: 'player_joined';      payload: { player: Player } }
   | { type: 'player_kicked';      payload: { playerId: string } }
   | { type: 'you_were_kicked' }

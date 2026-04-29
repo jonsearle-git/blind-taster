@@ -18,9 +18,10 @@ export function PlayerStatusList({ players, answeredIds, onKick, showScore }: Pr
       keyExtractor={(item) => item.id}
       ItemSeparatorComponent={() => <Divider spacing={0} />}
       contentContainerStyle={styles.list}
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
         <PlayerRow
           player={item}
+          index={index}
           answered={answeredIds !== undefined ? answeredIds.has(item.id) : undefined}
           onKick={onKick}
           showScore={showScore}

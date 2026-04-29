@@ -11,7 +11,7 @@ import { QuestionType } from '../../constants/gameConstants';
 import {
   Question,
   MultipleChoiceTextQuestion, MultipleChoiceNumberQuestion,
-  SliderNumberQuestion, TagsQuestion, PriceQuestion,
+  SliderNumberQuestion, PriceQuestion,
 } from '../../types/questionnaire';
 import { TextInput } from '../TextInput';
 import { Button } from '../Button';
@@ -19,7 +19,6 @@ import { ErrorMessage } from '../ErrorMessage';
 import { MultipleChoiceBuilder } from './MultipleChoiceBuilder';
 import { MultipleChoiceNumberBuilder } from './MultipleChoiceNumberBuilder';
 import { SliderBuilder } from './SliderBuilder';
-import { TagsBuilder } from './TagsBuilder';
 import { PriceBuilder } from './PriceBuilder';
 
 const TYPE_LABELS: Record<QuestionType, string> = {
@@ -40,7 +39,7 @@ function makeDefault(type: QuestionType): Question {
     case QuestionType.SliderNumber:
       return { id, type, prompt: '', min: 0, max: 100, step: 1 };
     case QuestionType.Tags:
-      return { id, type, prompt: '', tags: [], maxSelections: null };
+      return { id, type, prompt: '' };
     case QuestionType.Price:
       return { id, type, prompt: '', currencySymbol: '£' };
   }
@@ -54,11 +53,6 @@ function validate(q: Question): string | null {
   }
   if (q.type === QuestionType.SliderNumber) {
     if ((q as SliderNumberQuestion).min >= (q as SliderNumberQuestion).max) return 'Min must be less than max.';
-  }
-  if (q.type === QuestionType.Tags) {
-    const tq = q as TagsQuestion;
-    if (tq.tags.length === 0) return 'Add at least one tag.';
-    if (tq.tags.some((t) => !t.label.trim())) return 'All tags need a label.';
   }
   return null;
 }
@@ -189,13 +183,6 @@ export function QuestionDraftDialog({ draftType, editQuestion, onConfirm, onCanc
                   max={(draft as SliderNumberQuestion).max}
                   step={(draft as SliderNumberQuestion).step}
                   onChange={(f) => setDraft({ ...draft, ...f } as SliderNumberQuestion)}
-                />
-              )}
-              {draft.type === QuestionType.Tags && (
-                <TagsBuilder
-                  tags={(draft as TagsQuestion).tags}
-                  maxSelections={(draft as TagsQuestion).maxSelections}
-                  onChange={(t, m) => setDraft({ ...draft, tags: t, maxSelections: m } as TagsQuestion)}
                 />
               )}
               {draft.type === QuestionType.Price && (

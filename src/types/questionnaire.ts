@@ -30,17 +30,10 @@ export type SliderNumberQuestion = {
   step: number;
 };
 
-export type Tag = {
-  id: string;
-  label: string;
-};
-
 export type TagsQuestion = {
   id: string;
   type: QuestionType.Tags;
   prompt: string;
-  tags: Tag[];
-  maxSelections: number | null;
 };
 
 export type PriceQuestion = {

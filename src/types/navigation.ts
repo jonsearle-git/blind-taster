@@ -1,5 +1,7 @@
 import { GameResults } from './results';
 import { Round } from './game';
+import { Question } from './questionnaire';
+import { QuestionType } from '../constants/gameConstants';
 
 export type RootStackParamList = {
   Home:   undefined;
@@ -12,6 +14,7 @@ export type HostStackParamList = {
   Questionnaires:       undefined;
   Games:                undefined;
   QuestionnaireBuilder: { questionnaireId?: string };
+  QuestionEditor:       { questionType?: QuestionType; question?: Question; onSave: (q: Question) => void };
   RoundsBuilder:        { gameId?: string; questionnaireId?: string };
   HostLobby:            { questionnaireId: string; rounds: Round[] };
   HostInGame:           undefined;

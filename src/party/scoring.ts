@@ -28,11 +28,11 @@ export function scoreAnswer(question: Question, playerAnswer: Answer, correctAns
     case QuestionType.Tags: {
       if (playerAnswer.type !== QuestionType.Tags)  return 0;
       if (correctAnswer.type !== QuestionType.Tags) return 0;
-      if (correctAnswer.selectedTagIds.length === 0) return 100;
-      const matches = correctAnswer.selectedTagIds.filter((id) =>
-        (playerAnswer as typeof playerAnswer & { selectedTagIds: string[] }).selectedTagIds.includes(id)
+      if (correctAnswer.tags.length === 0) return 100;
+      const matches = correctAnswer.tags.filter((c) =>
+        playerAnswer.tags.some((p) => p.toLowerCase() === c.toLowerCase())
       ).length;
-      return Math.round((matches / correctAnswer.selectedTagIds.length) * 100);
+      return Math.round((matches / correctAnswer.tags.length) * 100);
     }
     case QuestionType.Price: {
       if (playerAnswer.type !== QuestionType.Price)  return 0;
@@ -60,10 +60,7 @@ export function formatAnswerForDisplay(question: Question, answer: Answer): stri
     }
     case QuestionType.Tags: {
       if (answer.type !== QuestionType.Tags) return '—';
-      const labels = answer.selectedTagIds.map(
-        (id) => question.tags.find((t) => t.id === id)?.label ?? id
-      );
-      return labels.length > 0 ? labels.join(', ') : '(none)';
+      return answer.tags.length > 0 ? answer.tags.join(', ') : '(none)';
     }
     case QuestionType.Price: {
       if (answer.type !== QuestionType.Price) return '—';

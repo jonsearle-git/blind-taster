@@ -1,4 +1,5 @@
-import { StyleSheet, View, Text, FlatList, Pressable, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
+import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
@@ -7,32 +8,36 @@ import { Spacing } from '../../constants/spacing';
 import { HostStackParamList } from '../../types/navigation';
 import { Questionnaire } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
+import { useGames } from '../../hooks/useGames';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 type Nav = NativeStackNavigationProp<HostStackParamList>;
 
 export default function QuestionnairesScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const { questionnaires, loading, error, remove } = useQuestionnaires();
+  const { games, remove: removeGame }              = useGames();
+  const [dialog, setDialog]                        = useState<{ q: Questionnaire; affectedGames: ReturnType<typeof games.filter> } | null>(null);
 
   function handleEdit(q: Questionnaire): void {
     navigation.navigate('QuestionnaireBuilder', { questionnaireId: q.id });
   }
 
   function handleDelete(q: Questionnaire): void {
-    Alert.alert(
-      'Delete Questionnaire',
-      `Delete "${q.name}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => void remove(q.id) },
-      ]
-    );
+    setDialog({ q, affectedGames: games.filter((g) => g.questionnaireId === q.id) });
+  }
+
+  async function confirmDelete(): Promise<void> {
+    if (!dialog) return;
+    setDialog(null);
+    for (const g of dialog.affectedGames) await removeGame(g.id);
+    await remove(dialog.q.id);
   }
 
   return (
@@ -81,6 +86,18 @@ export default function QuestionnairesScreen(): React.ReactElement {
           )}
         />
       )}
+      <ConfirmDialog
+        visible={dialog !== null}
+        title="Delete Questionnaire"
+        message={dialog
+          ? `Delete "${dialog.q.name}"? This cannot be undone.${dialog.affectedGames.length > 0 ? `\n\nThis will also delete ${dialog.affectedGames.length} saved game${dialog.affectedGames.length > 1 ? 's' : ''}: ${dialog.affectedGames.map((g) => `"${g.name}"`).join(', ')}.` : ''}`
+          : ''}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDialog(null)}
+      />
     </ScreenContainer>
   );
 }

@@ -12,7 +12,8 @@ export function Divider({ spacing = Spacing.md }: Props): React.ReactElement {
 
 const styles = StyleSheet.create({
   divider: {
-    height:          1,
-    backgroundColor: Colors.border,
+    height:          2,
+    backgroundColor: Colors.ink,
+    opacity:         0.1,
   },
 });

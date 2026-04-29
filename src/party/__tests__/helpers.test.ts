@@ -34,8 +34,6 @@ const questionnaire: Questionnaire = {
       id: 'q3',
       type: QuestionType.Tags,
       prompt: 'Notes',
-      tags: [{ id: 't1', label: 'Cherry' }],
-      maxSelections: null,
     },
     {
       id: 'q4',

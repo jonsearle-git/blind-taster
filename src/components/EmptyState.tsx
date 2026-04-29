@@ -1,10 +1,10 @@
 import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../constants/colors';
-import { FontSize } from '../constants/typography';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 
 type Props = {
-  title: string;
+  title:    string;
   message?: string;
 };
 
@@ -25,14 +25,18 @@ const styles = StyleSheet.create({
     padding:        Spacing.xl,
   },
   title: {
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.lg,
-    textAlign:  'center',
+    fontFamily:   FontFamily.heading,
+    color:        Colors.textPrimary,
+    fontSize:     FontSize.lg,
+    fontWeight:   FontWeight.black,
+    textAlign:    'center',
     marginBottom: Spacing.sm,
   },
   message: {
-    color:     Colors.textSecondary,
-    fontSize:  FontSize.md,
-    textAlign: 'center',
+    fontFamily: FontFamily.body,
+    color:      Colors.textSecondary,
+    fontSize:   FontSize.md,
+    textAlign:  'center',
+    lineHeight: FontSize.md * 1.5,
   },
 });

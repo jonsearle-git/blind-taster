@@ -1,4 +1,4 @@
-// Taste Tester — 4 Splash Screen variants
+// Blind Taster — 4 Splash Screen variants
 // All sized for iOS phone viewport (402 x 874), placed inside IOSDevice frame.
 
 // ── Splash 1: Gradient wash with glossy bubbles floating ────────────
@@ -133,11 +133,11 @@ function TTSplash3({ palette: p, fonts }) {
       background: p.plum, fontFamily: fonts.body,
     }}>
       {/* Diagonal text stripes */}
-      <div style={{ ...stripe(p.sun, -12), top:80 }}>{repeatText('Taste Tester', p.ink)}</div>
+      <div style={{ ...stripe(p.sun, -12), top:80 }}>{repeatText('Blind Taster', p.ink)}</div>
       <div style={{ ...stripe(p.mint, -12), top:170 }}>{repeatText('Sip Score Scandal', p.ink)}</div>
-      <div style={{ ...stripe(p.melon, -12), top:260 }}>{repeatText('Taste Tester', p.cream)}</div>
+      <div style={{ ...stripe(p.melon, -12), top:260 }}>{repeatText('Blind Taster', p.cream)}</div>
       <div style={{ ...stripe(p.ocean, -12), top:580 }}>{repeatText('Sniff Swirl Settle', p.cream)}</div>
-      <div style={{ ...stripe(p.sun, -12), top:670 }}>{repeatText('Taste Tester', p.ink)}</div>
+      <div style={{ ...stripe(p.sun, -12), top:670 }}>{repeatText('Blind Taster', p.ink)}</div>
 
       {/* Centered logo card */}
       <div style={{
@@ -205,7 +205,7 @@ function TTSplash4({ palette: p, fonts }) {
         <div style={{
           fontFamily: fonts.display, fontSize:44, fontWeight:900,
           color:p.ink, textTransform:'uppercase', letterSpacing:-.5, lineHeight:1,
-        }}>Taste Tester</div>
+        }}>Blind Taster</div>
         <div style={{
           fontFamily: fonts.body, fontSize:14, fontWeight:800,
           color:p.ink, letterSpacing:3, textTransform:'uppercase',

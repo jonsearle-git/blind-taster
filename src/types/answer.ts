@@ -21,7 +21,7 @@ export type SliderNumberAnswer = {
 export type TagsAnswer = {
   questionId: string;
   type: QuestionType.Tags;
-  selectedTagIds: string[];
+  tags: string[];
 };
 
 export type PriceAnswer = {

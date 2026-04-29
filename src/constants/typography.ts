@@ -14,3 +14,10 @@ export const FontWeight = {
   bold:    '700' as const,
   black:   '900' as const,
 };
+
+export const FontFamily = {
+  display: 'AlfaSlabOne_400Regular',
+  heading: 'Fraunces_700Bold',
+  body:    'DMSans_400Regular',
+  bodyBold:'DMSans_700Bold',
+} as const;

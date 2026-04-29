@@ -1,4 +1,4 @@
-// Taste Tester — Round/Questionnaire screen + component samples + theme sheet
+// Blind Taster — Round/Questionnaire screen + component samples + theme sheet
 
 // ── Round Screen: taste questionnaire ───────────────────────────────
 function TTRoundScreen({ palette: p, fonts, cardFeel }) {
@@ -266,7 +266,7 @@ function TTThemeSheet({ palette: p, fonts, cardFeel }) {
             Brand System · v1.0
           </div>
           <div style={{ fontFamily: fonts.display, fontSize:62, fontWeight:900, lineHeight:.95, letterSpacing:-1, marginTop:4 }}>
-            Taste Tester
+            Blind Taster
           </div>
           <div style={{ fontSize:16, fontWeight:600, marginTop:6, opacity:.75 }}>
             Sniff · Swirl · Settle the score
@@ -366,7 +366,7 @@ function TTAppIconGrid({ palette: p, fonts }) {
     }}>
       <div style={{ textAlign:'center' }}>
         <div style={{ fontSize:12, fontWeight:900, letterSpacing:3, textTransform:'uppercase', color:p.sun, opacity:.8 }}>App Icon</div>
-        <div style={{ fontFamily: fonts.display, fontSize:36, fontWeight:900, color:p.cream, letterSpacing:-.4 }}>Taste Tester</div>
+        <div style={{ fontFamily: fonts.display, fontSize:36, fontWeight:900, color:p.cream, letterSpacing:-.4 }}>Blind Taster</div>
       </div>
 
       <div style={{ display:'flex', gap:18 }}>

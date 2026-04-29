@@ -1,4 +1,4 @@
-// Taste Tester — Logo (chunky squishy wordmark)
+// Blind Taster — Logo (chunky squishy wordmark)
 // Built by custom-laying out each letter with rotation + fill variations.
 // 4 variants: primary, stacked, mono-dark, mono-light
 
@@ -55,8 +55,8 @@ function TTLogo({
     fills1 = fills2 = Array(12).fill(p.cream);
     outline = p.cream;
   } else {
-    fills1 = [p.melon, p.sun, p.mint, p.ocean, p.melon]; // TASTE
-    fills2 = [p.sun, p.mint, p.ocean, p.melon, p.sun, p.mint]; // TESTER
+    fills1 = [p.melon, p.sun, p.mint, p.ocean, p.melon]; // BLIND
+    fills2 = [p.sun, p.mint, p.ocean, p.melon, p.sun, p.mint]; // TASTER
     outline = p.ink;
   }
 
@@ -65,18 +65,18 @@ function TTLogo({
   const ys1 =    [0, 6, -4, 8, 2];
   const ys2 =    [-2, 6, 0, 8, -3, 4];
 
-  const TasteRow = (
+  const BlindRow = (
     <span style={{ whiteSpace: 'nowrap' }}>
-      {'TASTE'.split('').map((ch, i) => (
+      {'BLIND'.split('').map((ch, i) => (
         <TTLetter key={i} char={ch} color={fills1[i]} outline={outline}
           size={letterSize} rotate={tilts1[i]} offsetY={ys1[i]}/>
       ))}
     </span>
   );
 
-  const TesterRow = (
+  const TasterRow = (
     <span style={{ whiteSpace: 'nowrap' }}>
-      {'TESTER'.split('').map((ch, i) => (
+      {'TASTER'.split('').map((ch, i) => (
         <TTLetter key={i} char={ch} color={fills2[i]} outline={outline}
           size={layout === 'stacked' ? letterSize : smallSize}
           rotate={tilts2[i]} offsetY={ys2[i]}/>
@@ -87,23 +87,23 @@ function TTLogo({
   if (layout === 'stacked') {
     return (
       <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: letterSize * 0.05, ...style }}>
-        {TasteRow}
-        {TesterRow}
+        {BlindRow}
+        {TasterRow}
       </div>
     );
   }
 
-  // inline: TASTE TESTER with a tiny dot separator
+  // inline: BLIND TASTER with a tiny dot separator
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: letterSize * 0.12, ...style }}>
-      {TasteRow}
+      {BlindRow}
       <span style={{
         width: letterSize * 0.22, height: letterSize * 0.22,
         borderRadius: '50%', background: outline,
         display: 'inline-block', flexShrink: 0,
         boxShadow: `inset -${letterSize * 0.05}px -${letterSize * 0.05}px 0 rgba(0,0,0,.25), inset ${letterSize * 0.05}px ${letterSize * 0.05}px 0 rgba(255,255,255,.25)`,
       }}/>
-      {TesterRow}
+      {TasterRow}
     </div>
   );
 }
@@ -129,7 +129,7 @@ function TTMonogram({ size = 140, palette, style = {} }) {
         lineHeight: 1, letterSpacing: -size * 0.02,
         transform: 'rotate(-6deg)',
       }}>
-        TT
+        BT
       </span>
       {/* sparkle */}
       <div style={{ position: 'absolute', top: size * 0.12, right: size * 0.14 }}>
@@ -140,7 +140,7 @@ function TTMonogram({ size = 140, palette, style = {} }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// TTLockup — monogram + "Taste Tester" wordmark
+// TTLockup — monogram + "Blind Taster" wordmark
 // Variants:
 //   horizontal — monogram left, name stacked on right
 //   stacked    — monogram on top, name below
@@ -171,13 +171,13 @@ function TTLockup({
         fontFamily: font, fontSize: nameSize, fontWeight: 900,
         color: textColor,
         textTransform: 'uppercase',
-      }}>Taste</span>
+      }}>Blind</span>
       <span style={{
         fontFamily: font, fontSize: nameSize, fontWeight: 900,
         color: textColor,
         textTransform: 'uppercase',
         marginTop: nameSize * 0.04,
-      }}>Tester</span>
+      }}>Taster</span>
     </div>
   );
 
@@ -190,7 +190,7 @@ function TTLockup({
             fontFamily: font, fontSize: nameSize, fontWeight: 900,
             color: textColor, textTransform: 'uppercase',
             letterSpacing: -nameSize * 0.015,
-          }}>Taste Tester</div>
+          }}>Blind Taster</div>
         </div>
       </div>
     );

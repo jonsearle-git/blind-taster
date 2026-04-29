@@ -1,4 +1,4 @@
-// Taste Tester — Theme, palettes, font stacks, and shared primitives
+// Blind Taster — Theme, palettes, font stacks, and shared primitives
 // Y2K candy pop: glossy bubbles, chunky letters, gradient sheens, sparkle accents
 
 const TT_PALETTES = {

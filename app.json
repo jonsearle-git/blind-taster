@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F0A0B"
+      "backgroundColor": "#3D1766"
     },
     "scheme": "blindtaster",
     "ios": {
@@ -24,7 +24,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F0A0B"
       },
-      "package": "com.blindtaster.app"
+      "package": "com.blindtaster.app",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
       "eas": {
@@ -32,7 +33,9 @@
       }
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font",
+      "expo-camera"
     ],
     "owner": "searlesoft"
   }

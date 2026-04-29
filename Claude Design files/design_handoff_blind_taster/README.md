@@ -1,8 +1,8 @@
-# Handoff: Taste Tester — Splash Screen, Logo & Brand System
+# Handoff: Blind Taster — Splash Screen, Logo & Brand System
 
 ## Overview
 
-**Taste Tester** is a collaborative party game for taste-testing food and wine. Players join a lobby, then each round answers a fun questionnaire about a numbered sample (e.g. "Glass C") and locks in their answers — flavors picked up, vibe rating, etc. — before everyone reveals.
+**Blind Taster** is a collaborative party game for taste-testing food and wine. Players join a lobby, then each round answers a fun questionnaire about a numbered sample (e.g. "Glass C") and locks in their answers — flavors picked up, vibe rating, etc. — before everyone reveals.
 
 This handoff covers the **brand system** (logo, palette, type, motifs, components) and the **splash screen** the user selected — *Tickertape* — plus reference designs for the lobby and round questionnaire screens.
 
@@ -102,8 +102,8 @@ Anatomy (size = `S`):
 
 | Variant       | Layout                                            | Use                                  |
 |---------------|---------------------------------------------------|--------------------------------------|
-| horizontal    | Monogram left, "TASTE / TESTER" stacked right     | Headers, top of screens              |
-| stacked       | Monogram top, "TASTE TESTER" single line below    | Splash, marketing                    |
+| horizontal    | Monogram left, "BLIND / TASTER" stacked right     | Headers, top of screens              |
+| stacked       | Monogram top, "BLIND TASTER" single line below    | Splash, marketing                    |
 | mono-dark     | Horizontal, all `#2B1055` text, monogram in color | Headers on light backgrounds         |
 | mono-light    | Horizontal, all `#FFF4E0` text, monogram in color | Headers on dark backgrounds          |
 
@@ -124,11 +124,11 @@ Full-bleed plum background with diagonal stripes of repeating wordmark text, and
 
   | Top (px) | Stripe color | Text color | Text content                  |
   |----------|--------------|------------|--------------------------------|
-  | 80       | `#FFD166`    | `#2B1055`  | `TASTE TESTER ✦` (×10)         |
+  | 80       | `#FFD166`    | `#2B1055`  | `BLIND TASTER ✦` (×10)         |
   | 170      | `#06D6A0`    | `#2B1055`  | `SIP SCORE SCANDAL ✦` (×10)    |
-  | 260      | `#EF476F`    | `#FFF4E0`  | `TASTE TESTER ✦` (×10)         |
+  | 260      | `#EF476F`    | `#FFF4E0`  | `BLIND TASTER ✦` (×10)         |
   | 580      | `#118AB2`    | `#FFF4E0`  | `SNIFF SWIRL SETTLE ✦` (×10)   |
-  | 670      | `#FFD166`    | `#2B1055`  | `TASTE TESTER ✦` (×10)         |
+  | 670      | `#FFD166`    | `#2B1055`  | `BLIND TASTER ✦` (×10)         |
 
   Each repeat: `Alfa Slab One`, 38px, weight 900, letter-spacing 2, uppercase, with `marginRight: 18px` between repeats.
 
@@ -136,7 +136,7 @@ Full-bleed plum background with diagonal stripes of repeating wordmark text, and
   - Background `#FFF4E0` (cream), border `3px solid #2B1055`, radius `32px`, shadow `8px 8px 0 #2B1055`
   - Padding `28px 28px 24px`
   - Inside, vertical flex with `gap: 14px`:
-    - Stacked TTLockup (monogram + "Taste Tester" wordmark), size factor `0.65`
+    - Stacked TTLockup (monogram + "Blind Taster" wordmark), size factor `0.65`
     - Pill button: "TAP TO START" — `#EF476F` background, `#FFF4E0` text, `3px solid #2B1055` border, `6px 6px 0 #2B1055` shadow, font `Alfa Slab One`, height 52, padding `0 28px`, font-size 17, uppercase, with a white inner highlight strip on top (gloss)
 
 - **Corner sparkles**:
@@ -185,7 +185,7 @@ A static brand reference page with palette swatches, type samples, motifs (stars
 | Component       | Purpose                                                             |
 |-----------------|---------------------------------------------------------------------|
 | `Monogram`      | Round/squircle TT badge — used as app icon and inside logo lockup   |
-| `Lockup`        | Monogram + "Taste Tester" wordmark, with `horizontal`/`stacked` and `dark`/`light`/`color` tones |
+| `Lockup`        | Monogram + "Blind Taster" wordmark, with `horizontal`/`stacked` and `dark`/`light`/`color` tones |
 | `StickerCard`   | The cream rectangle with ink border + offset shadow                 |
 | `PillButton`    | The candy CTA with gloss highlight and offset shadow                |
 | `Sparkle`       | 4-point star SVG                                                    |
@@ -249,7 +249,7 @@ https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fraunces:wght@400;
 
 ```
 reference/
-  Taste Tester.html        — main canvas; loads everything
+  Blind Taster.html        — main canvas; loads everything
   tt-theme.jsx             — TT_PALETTES, TT_FONTS, TT_CARD_FEELS, TTStar, TTBlob, TTSticker, TTPill, etc.
   tt-logo.jsx              — TTLetter, TTLogo, TTMonogram, TTLockup
   tt-splash.jsx            — TTSplash1..4 (use TTSplash3 — Tickertape)
@@ -269,11 +269,11 @@ The two "not needed" files are only used by the design canvas to present mockups
 ```
 Read design_handoff_taste_tester/README.md end-to-end before doing anything.
 
-We're building Taste Tester — a collaborative party game for taste-testing food and
+We're building Blind Taster — a collaborative party game for taste-testing food and
 wine. The README is the source of truth for the brand system, splash screen, and
 screens.
 
-Set up a new React Native + Expo project (TypeScript) called `taste-tester`. Add:
+Set up a new React Native + Expo project (TypeScript) called `blind-taster`. Add:
 - Google Fonts (Alfa Slab One, Fraunces, DM Sans) via expo-font
 - A `theme/` folder with palette, type, radii, shadows, and a single useTheme() hook
 - React Navigation with a stack: Splash → Lobby → Round → Reveal

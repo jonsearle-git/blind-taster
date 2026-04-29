@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text, Modal, ActivityIndicator } from 'react-native';
 import { Colors } from '../constants/colors';
 import { FontSize, FontWeight } from '../constants/typography';
-import { Spacing } from '../constants/spacing';
+import { Spacing, BorderRadius } from '../constants/spacing';
 
 type Props = {
   visible: boolean;
@@ -34,11 +34,11 @@ const styles = StyleSheet.create({
   card: {
     width:           '100%',
     backgroundColor: Colors.surface,
-    borderRadius:    Spacing.md,
+    borderRadius:    BorderRadius.xl,
     padding:         Spacing.xl,
     alignItems:      'center',
     gap:             Spacing.md,
-    borderWidth:     1,
+    borderWidth:     2.5,
     borderColor:     Colors.border,
   },
   title: {

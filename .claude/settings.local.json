@@ -14,7 +14,20 @@
       "Bash(head -20 node_modules/jest-expo/jest-preset.js)",
       "Bash(npm audit:*)",
       "Bash(npm view:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "WebSearch",
+      "WebFetch(domain:mag.sommtv.com)",
+      "WebFetch(domain:www.thegrapegrind.com)",
+      "WebFetch(domain:www.rachelvonsturmer.com)",
+      "WebFetch(domain:legacy.bjcp.org)",
+      "WebFetch(domain:www.wsetglobal.com)",
+      "WebFetch(domain:www.scotch-whisky.org.uk)",
+      "WebFetch(domain:www.mysterytasting.com)",
+      "WebFetch(domain:bhooc.com)",
+      "WebFetch(domain:cocoarunners.com)",
+      "WebFetch(domain:and-sons.com)",
+      "WebFetch(domain:torque.coffee)",
+      "Bash(npx expo *)"
     ]
   }
 }

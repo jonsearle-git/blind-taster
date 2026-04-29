@@ -1,5 +1,5 @@
-import { StyleSheet, View, Text, FlatList, Pressable, Alert, Modal } from 'react-native';
-import { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, FlatList, Pressable, Modal } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,15 +8,13 @@ import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { QuestionType } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
-import { Question, Questionnaire, SliderNumberQuestion, TagsQuestion } from '../../types/questionnaire';
+import { Question, Questionnaire, SliderNumberQuestion } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { TextInput } from '../../components/TextInput';
 import { Button } from '../../components/Button';
-import { Divider } from '../../components/Divider';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { QuestionAccordionItem } from '../../components/builder/QuestionAccordionItem';
-import { QuestionDraftDialog } from '../../components/builder/QuestionDraftDialog';
 
 type Nav   = NativeStackNavigationProp<HostStackParamList>;
 type Route = RouteProp<HostStackParamList, 'QuestionnaireBuilder'>;
@@ -39,11 +37,6 @@ function validateQuestion(q: Question, index: number): string | null {
     if ((q as SliderNumberQuestion).min >= (q as SliderNumberQuestion).max)
       return `Question ${index + 1}: min must be less than max.`;
   }
-  if (q.type === QuestionType.Tags) {
-    const tq = q as TagsQuestion;
-    if (tq.tags.length === 0) return `Question ${index + 1} needs at least one tag.`;
-    if (tq.tags.some((t) => !t.label.trim())) return `Question ${index + 1} has an empty tag label.`;
-  }
   return null;
 }
 
@@ -56,11 +49,10 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
 
   const [name, setName]             = useState('');
   const [questions, setQuestions]   = useState<Question[]>([]);
-  const [error,          setError]          = useState<string | null>(null);
-  const [saving,         setSaving]         = useState(false);
-  const [showPicker,     setShowPicker]     = useState(false);
-  const [draftType,      setDraftType]      = useState<QuestionType | null>(null);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [nameError, setNameError]   = useState<string | undefined>(undefined);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [saving,    setSaving]      = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: existingId ? 'Edit Questionnaire' : 'New Questionnaire' });
@@ -72,35 +64,34 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
     if (existing) { setName(existing.name); setQuestions(existing.questions); }
   }, [existingId, questionnaires]);
 
-  function handleConfirm(q: Question): void {
-    if (editingQuestion !== null) {
-      setQuestions((prev) => prev.map((x) => (x.id === q.id ? q : x)));
-      setEditingQuestion(null);
-    } else {
-      setQuestions((prev) => [...prev, q]);
-      setDraftType(null);
-    }
-  }
+  const handleSaveQuestion = useCallback((q: Question): void => {
+    setQuestions((prev) => {
+      const exists = prev.some((x) => x.id === q.id);
+      return exists ? prev.map((x) => (x.id === q.id ? q : x)) : [...prev, q];
+    });
+  }, []);
+
+  const handlePickType = useCallback((type: QuestionType): void => {
+    setShowPicker(false);
+    navigation.navigate('QuestionEditor', { questionType: type, onSave: handleSaveQuestion });
+  }, [navigation, handleSaveQuestion]);
 
   async function handleSave(): Promise<void> {
     const trimmedName = name.trim();
-    if (!trimmedName) { setError('Give your questionnaire a name.'); return; }
-    if (questions.length === 0) { setError('Add at least one question.'); return; }
+    if (!trimmedName) { setNameError('Give your questionnaire a name.'); return; }
+    setNameError(undefined);
+    if (questions.length === 0) { setQuestionsError('Add at least one question.'); return; }
     for (let i = 0; i < questions.length; i++) {
       const err = validateQuestion(questions[i], i);
-      if (err) { setError(err); return; }
+      if (err) { setQuestionsError(err); return; }
     }
-    setError(null);
+    setQuestionsError(null);
     setSaving(true);
     try {
       const now = Date.now();
       const q: Questionnaire = { id: existingId ?? uuidv4(), name: trimmedName, questions, createdAt: now, updatedAt: now };
       if (existingId) { await update(q); } else { await save(q); }
-      Alert.alert(
-        'Questionnaire Saved',
-        'Remember to set the correct answer for each round in the Rounds screen.',
-        [{ text: 'Got it', onPress: () => navigation.goBack() }]
-      );
+      navigation.goBack();
     } catch {
       setError('Failed to save. Please try again.');
     } finally {
@@ -111,9 +102,8 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
   return (
     <ScreenContainer noPadding>
       <View style={styles.inner}>
-        <TextInput label="Questionnaire Name" value={name} onChangeText={setName} placeholder="e.g. Wine Tasting 2025" />
-        {error !== null && <ErrorMessage message={error} />}
-        <Divider />
+        <TextInput label="Questionnaire Name" value={name} onChangeText={(t) => { setName(t); setNameError(undefined); }} placeholder="e.g. Wine Tasting 2025" error={nameError} />
+
 
         <FlatList
           data={questions}
@@ -124,13 +114,14 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
             <QuestionAccordionItem
               question={item}
               index={index}
-              onEdit={() => setEditingQuestion(item)}
+              onEdit={() => navigation.navigate('QuestionEditor', { question: item, onSave: handleSaveQuestion })}
               onRemove={(id) => setQuestions((prev) => prev.filter((x) => x.id !== id))}
             />
           )}
         />
 
         <Button label="+ Add Question" onPress={() => setShowPicker(true)} variant="secondary" />
+        {questionsError !== null && <ErrorMessage message={questionsError} />}
         <Button label="Save Questionnaire" onPress={handleSave} loading={saving} />
       </View>
 
@@ -142,7 +133,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
             {Object.values(QuestionType).map((type) => (
               <Pressable
                 key={type}
-                onPress={() => { setDraftType(type); setShowPicker(false); }}
+                onPress={() => handlePickType(type)}
                 style={({ pressed }) => [styles.sheetOption, pressed && styles.sheetOptionPressed]}
                 accessibilityRole="button"
                 accessibilityLabel={TYPE_LABELS[type]}
@@ -153,13 +144,6 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
           </View>
         </Pressable>
       </Modal>
-
-      <QuestionDraftDialog
-        draftType={draftType}
-        editQuestion={editingQuestion}
-        onConfirm={handleConfirm}
-        onCancel={() => { setDraftType(null); setEditingQuestion(null); }}
-      />
     </ScreenContainer>
   );
 }

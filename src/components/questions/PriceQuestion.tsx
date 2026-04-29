@@ -1,30 +1,28 @@
 import { StyleSheet, View, Text, TextInput } from 'react-native';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { PriceQuestion as PriceQ } from '../../types/questionnaire';
 
 type Props = {
   question: PriceQ;
-  value: number | null;
+  value:    number | null;
   onChange: (value: number) => void;
-  locked?: boolean;
+  locked?:  boolean;
 };
 
 export function PriceQuestion({ question, value, onChange, locked = false }: Props): React.ReactElement {
   function handleChange(text: string): void {
     const parsed = parseFloat(text);
-    if (!isNaN(parsed)) {
-      onChange(parsed);
-    }
+    if (!isNaN(parsed)) onChange(parsed);
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.prompt}>{question.prompt}</Text>
-      <View style={styles.inputRow}>
-        <View style={styles.symbolWrapper}>
-          <Text style={styles.symbol}>{question.currencySymbol}</Text>
+      <View style={styles.row}>
+        <View style={styles.symbol}>
+          <Text style={styles.symbolText}>{question.currencySymbol}</Text>
         </View>
         <TextInput
           style={[styles.input, locked && styles.locked]}
@@ -35,6 +33,7 @@ export function PriceQuestion({ question, value, onChange, locked = false }: Pro
           placeholder="0.00"
           placeholderTextColor={Colors.textDisabled}
           accessibilityLabel={`${question.prompt} price in ${question.currencySymbol}`}
+          fontFamily={FontFamily.heading}
         />
       </View>
     </View>
@@ -42,51 +41,49 @@ export function PriceQuestion({ question, value, onChange, locked = false }: Pro
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.md,
-  },
+  container: { gap: Spacing.md },
   prompt: {
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.medium,
+    fontFamily:  FontFamily.heading,
+    color:       Colors.ink,
+    fontSize:    FontSize.lg,
+    fontWeight:  FontWeight.black,
+    lineHeight:  FontSize.lg * 1.3,
   },
-  inputRow: {
+  row: {
     flexDirection: 'row',
-    alignItems:    'center',
-  },
-  symbolWrapper: {
-    backgroundColor:  Colors.surfaceElevated,
-    borderWidth:      1,
-    borderColor:      Colors.border,
-    borderRightWidth: 0,
-    borderTopLeftRadius:    Spacing.sm,
-    borderBottomLeftRadius: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical:   Spacing.sm,
-    minHeight:         48,
-    alignItems:        'center',
-    justifyContent:    'center',
+    alignItems:    'stretch',
   },
   symbol: {
-    color:      Colors.textSecondary,
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
+    backgroundColor:        Colors.sun,
+    borderWidth:            2.5,
+    borderColor:            Colors.ink,
+    borderRightWidth:       0,
+    borderTopLeftRadius:    BorderRadius.sm,
+    borderBottomLeftRadius: BorderRadius.sm,
+    paddingHorizontal:      Spacing.md,
+    alignItems:             'center',
+    justifyContent:         'center',
+    minHeight:              56,
+  },
+  symbolText: {
+    fontFamily:  FontFamily.display,
+    color:       Colors.ink,
+    fontSize:    FontSize.xl,
+    fontWeight:  FontWeight.black,
   },
   input: {
-    flex:             1,
-    backgroundColor:  Colors.surface,
-    borderWidth:      1,
-    borderColor:      Colors.border,
-    borderTopRightRadius:    Spacing.sm,
-    borderBottomRightRadius: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical:   Spacing.sm,
-    color:            Colors.textPrimary,
-    fontSize:         FontSize.lg,
-    fontWeight:       FontWeight.bold,
-    minHeight:        48,
+    flex:                    1,
+    backgroundColor:         Colors.surface,
+    borderWidth:             2.5,
+    borderColor:             Colors.ink,
+    borderTopRightRadius:    BorderRadius.sm,
+    borderBottomRightRadius: BorderRadius.sm,
+    paddingHorizontal:       Spacing.md,
+    color:                   Colors.ink,
+    fontSize:                FontSize.xl,
+    fontWeight:              FontWeight.black,
+    minHeight:               56,
+    fontFamily:              FontFamily.heading,
   },
-  locked: {
-    opacity: 0.6,
-  },
+  locked: { opacity: 0.6 },
 });

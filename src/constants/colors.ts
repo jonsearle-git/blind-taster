@@ -1,31 +1,45 @@
+// Candy Pop palette — Y2K light theme
+const palette = {
+  cream:  '#FFF4E0',
+  sun:    '#FFD166',
+  melon:  '#EF476F',
+  mint:   '#06D6A0',
+  ocean:  '#118AB2',
+  plum:   '#3D1766',
+  ink:    '#2B1055',
+} as const;
+
 export const Colors = {
+  // Palette (use for design-specific references)
+  ...palette,
+
   // Backgrounds
-  background:      '#0F0A0B',
-  surface:         '#1C1418',
-  surfaceElevated: '#2A1E23',
+  background:      palette.cream,
+  surface:         '#FFFFFF',
+  surfaceElevated: '#FFF8EC',
 
   // Brand
-  primary:         '#C0392B',
-  primaryLight:    '#E74C3C',
-  primaryDark:     '#922B21',
+  primary:         palette.melon,
+  primaryLight:    '#FF6E9C',
+  primaryDark:     palette.plum,
 
   // Accents
-  gold:            '#D4AC0D',
-  goldLight:       '#F1C40F',
+  gold:            palette.sun,
+  goldLight:       '#FFE14D',
 
-  // Text
-  textPrimary:     '#F5F0F1',
-  textSecondary:   '#A89298',
-  textDisabled:    '#5C4A50',
+  // Text (ink on light backgrounds)
+  textPrimary:     palette.ink,
+  textSecondary:   '#5C3B70',
+  textDisabled:    '#9B8AA6',
 
   // Semantic
-  success:         '#27AE60',
-  warning:         '#E67E22',
-  error:           '#C0392B',
+  success:         palette.mint,
+  warning:         palette.sun,
+  error:           palette.melon,
 
   // UI
-  border:          '#2A1E23',
-  overlay:         'rgba(0,0,0,0.6)',
+  border:          palette.ink,
+  overlay:         'rgba(43,16,85,0.6)',
   transparent:     'transparent',
 } as const;
 

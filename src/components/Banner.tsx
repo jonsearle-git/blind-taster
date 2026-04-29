@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { Colors } from '../constants/colors';
 import { FontSize, FontWeight } from '../constants/typography';
-import { Spacing } from '../constants/spacing';
+import { Spacing, BorderRadius } from '../constants/spacing';
 
 type Props = {
   title: string;
@@ -38,20 +38,21 @@ export function Banner({ title, score, onHostMenuPress }: Props): React.ReactEle
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection:    'row',
-    alignItems:       'center',
-    justifyContent:   'space-between',
-    backgroundColor:  Colors.surface,
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
+    backgroundColor:   Colors.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical:   Spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: 2.5,
     borderBottomColor: Colors.border,
   },
   title: {
-    flex:       1,
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
+    flex:        1,
+    color:       Colors.textPrimary,
+    fontSize:    FontSize.lg,
+    fontWeight:  FontWeight.black,
+    letterSpacing: 0.3,
   },
   right: {
     flexDirection: 'row',
@@ -59,21 +60,24 @@ const styles = StyleSheet.create({
     gap:           Spacing.sm,
   },
   scoreBadge: {
-    backgroundColor: Colors.primaryDark,
-    borderRadius:    Spacing.sm,
+    backgroundColor:   Colors.sun,
+    borderRadius:      BorderRadius.pill,
     paddingHorizontal: Spacing.sm,
     paddingVertical:   Spacing.xs / 2,
+    borderWidth:       2,
+    borderColor:       Colors.ink,
   },
   scoreText: {
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.bold,
+    color:       Colors.ink,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.black,
+    letterSpacing: 0.5,
   },
   menuButton: {
     padding: Spacing.xs,
   },
   menuIcon: {
-    color:    Colors.textPrimary,
+    color:    Colors.ink,
     fontSize: FontSize.xl,
   },
 });

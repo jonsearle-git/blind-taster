@@ -125,6 +125,11 @@ export class BlindTasterServer extends Party.Server<Env> {
     // M1: validate name server-side
     const sanitised = typeof name === 'string' ? name.trim() : '';
     if (sanitised.length === 0 || sanitised.length > 24) return;
+    // M2: reject duplicate names (case-insensitive)
+    const lower = sanitised.toLowerCase();
+    const taken = [...this.s.players.values()].some((p) => p.name.toLowerCase() === lower)
+               || [...this.s.pending.values()].some((n) => n.toLowerCase() === lower);
+    if (taken) { this.send(conn, { type: 'name_taken' }); return; }
     this.s.pending.set(conn.id, sanitised);
     const host = this.findHost();
     if (host) this.send(host, { type: 'join_request', payload: { playerId: conn.id, name: sanitised } });

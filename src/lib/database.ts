@@ -3,38 +3,41 @@ import { Questionnaire } from '../types/questionnaire';
 import { SavedGame } from '../types/savedGame';
 
 // Bump this whenever the schema changes — old DB is dropped and recreated.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
-let db: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync('blind_taster.db');
-    const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    if ((row?.user_version ?? 0) !== SCHEMA_VERSION) {
-      await db.execAsync(`
-        DROP TABLE IF EXISTS questionnaires;
-        DROP TABLE IF EXISTS saved_games;
-        CREATE TABLE questionnaires (
-          id         TEXT PRIMARY KEY NOT NULL,
-          name       TEXT NOT NULL,
-          data       TEXT NOT NULL,
-          created_at INTEGER NOT NULL,
-          updated_at INTEGER NOT NULL
-        );
-        CREATE TABLE saved_games (
-          id               TEXT PRIMARY KEY NOT NULL,
-          name             TEXT NOT NULL,
-          questionnaire_id TEXT NOT NULL,
-          data             TEXT NOT NULL,
-          created_at       INTEGER NOT NULL,
-          updated_at       INTEGER NOT NULL
-        );
-        PRAGMA user_version = ${SCHEMA_VERSION};
-      `);
-    }
+export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync('blind_taster.db');
+      const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+      if ((row?.user_version ?? 0) !== SCHEMA_VERSION) {
+        await db.execAsync(`
+          DROP TABLE IF EXISTS questionnaires;
+          DROP TABLE IF EXISTS saved_games;
+          CREATE TABLE questionnaires (
+            id         TEXT PRIMARY KEY NOT NULL,
+            name       TEXT NOT NULL,
+            data       TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+          );
+          CREATE TABLE saved_games (
+            id               TEXT PRIMARY KEY NOT NULL,
+            name             TEXT NOT NULL,
+            questionnaire_id TEXT NOT NULL,
+            data             TEXT NOT NULL,
+            created_at       INTEGER NOT NULL,
+            updated_at       INTEGER NOT NULL
+          );
+          PRAGMA user_version = ${SCHEMA_VERSION};
+        `);
+      }
+      return db;
+    })();
   }
-  return db;
+  return dbPromise;
 }
 
 // ── Questionnaires ─────────────────────────────────────────────────────────
@@ -86,26 +89,36 @@ export async function deleteQuestionnaire(id: string): Promise<void> {
 // ── Saved Games ────────────────────────────────────────────────────────────
 
 export async function getAllSavedGames(): Promise<SavedGame[]> {
-  const database = await getDatabase();
-  const rows = await database.getAllAsync<{ data: string }>(
-    'SELECT data FROM saved_games ORDER BY updated_at DESC'
-  );
-  return rows.map((row) => JSON.parse(row.data) as SavedGame);
+  try {
+    const database = await getDatabase();
+    const rows = await database.getAllAsync<{ data: string }>(
+      'SELECT data FROM saved_games ORDER BY updated_at DESC'
+    );
+    return rows.map((row) => JSON.parse(row.data) as SavedGame);
+  } catch (e) {
+    console.error('[database] getAllSavedGames failed:', e);
+    throw e;
+  }
 }
 
 export async function saveSavedGame(game: SavedGame): Promise<void> {
   const database = await getDatabase();
-  await database.runAsync(
-    `INSERT INTO saved_games (id, name, questionnaire_id, data, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name             = excluded.name,
-       questionnaire_id = excluded.questionnaire_id,
-       data             = excluded.data,
-       updated_at       = excluded.updated_at`,
-    game.id, game.name, game.questionnaireId,
-    JSON.stringify(game), game.createdAt, game.updatedAt
-  );
+  try {
+    await database.runAsync(
+      `INSERT INTO saved_games (id, name, questionnaire_id, data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name             = excluded.name,
+         questionnaire_id = excluded.questionnaire_id,
+         data             = excluded.data,
+         updated_at       = excluded.updated_at`,
+      game.id, game.name, game.questionnaireId,
+      JSON.stringify(game), game.createdAt, game.updatedAt
+    );
+  } catch (e) {
+    console.error('[database] saveSavedGame failed:', e, 'game:', JSON.stringify(game));
+    throw e;
+  }
 }
 
 export async function deleteSavedGame(id: string): Promise<void> {

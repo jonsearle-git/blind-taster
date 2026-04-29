@@ -25,7 +25,8 @@ export function GamesProvider({ children }: Props): React.ReactElement {
       setLoading(true);
       setError(null);
       setGames(await getAllSavedGames());
-    } catch {
+    } catch (e) {
+      console.error('[GamesContext] reload failed:', e);
       setError('Failed to load games');
     } finally {
       setLoading(false);

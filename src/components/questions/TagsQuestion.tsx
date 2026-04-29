@@ -1,94 +1,119 @@
-import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { StyleSheet, View, Text, Pressable, TextInput } from 'react-native';
+import { useState } from 'react';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { TagsQuestion as TagsQ } from '../../types/questionnaire';
+import { Chip } from '../brand/Chip';
 
 type Props = {
   question: TagsQ;
-  selectedTagIds: string[];
-  onToggle: (tagId: string) => void;
-  locked?: boolean;
+  tags:     string[];
+  onChange: (tags: string[]) => void;
+  locked?:  boolean;
 };
 
-export function TagsQuestion({ question, selectedTagIds, onToggle, locked = false }: Props): React.ReactElement {
-  const atLimit =
-    question.maxSelections !== null && selectedTagIds.length >= question.maxSelections;
+export function TagsQuestion({ question, tags, onChange, locked = false }: Props): React.ReactElement {
+  const [input, setInput] = useState('');
+
+  function handleAdd(): void {
+    const trimmed = input.trim();
+    if (!trimmed || tags.includes(trimmed)) return;
+    onChange([...tags, trimmed]);
+    setInput('');
+  }
+
+  function handleRemove(tag: string): void {
+    onChange(tags.filter((t) => t !== tag));
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.prompt}>{question.prompt}</Text>
-      {question.maxSelections !== null && (
-        <Text style={styles.hint}>
-          Select up to {question.maxSelections} ({selectedTagIds.length} chosen)
-        </Text>
+
+      {!locked && (
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            onSubmitEditing={handleAdd}
+            placeholder="Type a note and press Add…"
+            placeholderTextColor={Colors.textDisabled}
+            returnKeyType="done"
+            blurOnSubmit={false}
+          />
+          <Pressable onPress={handleAdd} style={styles.addButton}>
+            <Text style={styles.addButtonText}>Add</Text>
+          </Pressable>
+        </View>
       )}
-      <View style={styles.tagGrid}>
-        {question.tags.map((tag) => {
-          const selected = selectedTagIds.includes(tag.id);
-          const disabled = locked || (!selected && atLimit);
-          return (
-            <Pressable
-              key={tag.id}
-              onPress={() => !disabled && onToggle(tag.id)}
-              style={[
-                styles.tag,
-                selected && styles.tagSelected,
-                disabled && !selected && styles.tagDisabled,
-              ]}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected, disabled }}
-              accessibilityLabel={tag.label}
-            >
-              <Text style={[styles.tagLabel, selected && styles.tagLabelSelected]}>
-                {tag.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+
+      {tags.length > 0 && (
+        <View style={styles.chips}>
+          {tags.map((tag) => (
+            <Chip
+              key={tag}
+              label={tag}
+              selected
+              color={Colors.plum}
+              textColor={Colors.cream}
+              onRemove={locked ? undefined : () => handleRemove(tag)}
+            />
+          ))}
+        </View>
+      )}
+
+      {tags.length === 0 && locked && (
+        <Text style={styles.empty}>No notes added.</Text>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.md,
-  },
-  prompt: {
-    color:      Colors.textPrimary,
+  container: { gap: Spacing.sm },
+  prompt:    {
+    fontFamily: FontFamily.heading,
+    color:      Colors.ink,
     fontSize:   FontSize.lg,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.black,
   },
-  hint: {
-    color:    Colors.textSecondary,
-    fontSize: FontSize.sm,
-  },
-  tagGrid: {
-    flexDirection: 'row',
-    flexWrap:      'wrap',
-    gap:           Spacing.sm,
-  },
-  tag: {
-    backgroundColor:  Colors.surface,
-    borderWidth:      1,
-    borderColor:      Colors.border,
-    borderRadius:     Spacing.xl,
+  inputRow: { flexDirection: 'row', gap: Spacing.sm },
+  input: {
+    flex:              1,
+    backgroundColor:   Colors.surface,
+    borderWidth:       2.5,
+    borderColor:       Colors.border,
+    borderRadius:      BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical:   Spacing.sm,
+    color:             Colors.textPrimary,
+    fontSize:          FontSize.md,
+    fontWeight:        FontWeight.medium,
+    minHeight:         52,
+    fontFamily:        FontFamily.body,
   },
-  tagSelected: {
-    backgroundColor: Colors.primaryDark,
-    borderColor:     Colors.primary,
+  addButton: {
+    backgroundColor:   Colors.melon,
+    borderRadius:      BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    justifyContent:    'center',
+    alignItems:        'center',
+    borderWidth:       2.5,
+    borderColor:       Colors.ink,
+    minHeight:         52,
   },
-  tagDisabled: {
-    opacity: 0.4,
+  addButtonText: {
+    fontFamily:  FontFamily.bodyBold,
+    color:       Colors.cream,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.bold,
   },
-  tagLabel: {
-    color:    Colors.textPrimary,
-    fontSize: FontSize.sm,
-  },
-  tagLabelSelected: {
-    fontWeight: FontWeight.bold,
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  empty: {
+    fontFamily: FontFamily.body,
+    color:      Colors.textDisabled,
+    fontSize:   FontSize.sm,
   },
 });
