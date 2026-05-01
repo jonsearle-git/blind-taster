@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily:    FontFamily.display,
-    fontSize:      42,
+    fontSize:      FontSize.jumbo,
     fontWeight:    FontWeight.black,
     color:         Colors.ink,
     letterSpacing: 4,

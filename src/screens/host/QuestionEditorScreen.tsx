@@ -20,6 +20,7 @@ import {
   PriceQuestion,
 } from '../../types/questionnaire';
 import { Button } from '../../components/Button';
+import { questionEditorCallback } from '../../lib/questionEditorCallback';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { MultipleChoiceBuilder } from '../../components/builder/MultipleChoiceBuilder';
 import { MultipleChoiceNumberBuilder } from '../../components/builder/MultipleChoiceNumberBuilder';
@@ -92,7 +93,8 @@ export default function QuestionEditorScreen(): React.ReactElement {
     }
     setPromptError(undefined);
     setConfigError(null);
-    route.params?.onSave?.(draft);
+    questionEditorCallback.current?.(draft);
+    questionEditorCallback.current = null;
     navigation.goBack();
   }
 

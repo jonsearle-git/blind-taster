@@ -14,7 +14,7 @@ export type HostStackParamList = {
   Questionnaires:       undefined;
   Games:                undefined;
   QuestionnaireBuilder: { questionnaireId?: string };
-  QuestionEditor:       { questionType?: QuestionType; question?: Question; onSave: (q: Question) => void };
+  QuestionEditor:       { questionType?: QuestionType; question?: Question };
   RoundsBuilder:        { gameId?: string; questionnaireId?: string };
   HostLobby:            { questionnaireId: string; rounds: Round[] };
   HostInGame:           undefined;

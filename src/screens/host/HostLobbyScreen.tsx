@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily:    FontFamily.display,
-    fontSize:      42,
+    fontSize:      FontSize.jumbo,
     fontWeight:    FontWeight.black,
     color:         Colors.ink,
     letterSpacing: 4,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   joinAvatarText: {
     fontFamily:  FontFamily.display,
     color:       Colors.ink,
-    fontSize:    16,
+    fontSize:    FontSize.lg,
     fontWeight:  FontWeight.black,
   },
   joinName: {

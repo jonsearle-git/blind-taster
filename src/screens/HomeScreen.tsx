@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   stripeText: {
     fontFamily:   FontFamily.display,
-    fontSize:     34,
+    fontSize:     FontSize.banner,
     fontWeight:   FontWeight.black,
     letterSpacing: 2,
     lineHeight:    40,

@@ -4,6 +4,19 @@ This file is the authoritative reference for all development decisions on this p
 
 ---
 
+## Platform Target
+
+**This app is released on both Android and iOS. Every fix, feature, and style change must work correctly on both platforms without exception.**
+
+- Never use iOS-only or Android-only APIs unless providing a platform-specific fallback for the other.
+- Shadows: use both `elevation` (Android) and `shadow*` props (iOS) together.
+- `overflow: 'hidden'` with `borderRadius`: test on Android — it does not always clip children reliably on older Android versions.
+- `KeyboardAvoidingView`: always use `behavior={Platform.OS === 'ios' ? 'padding' : 'height'}`.
+- Custom fonts via `expo-font` work on both platforms — no platform guards needed for `fontFamily` in styles.
+- Do not assume a bug is iOS-only or Android-only without testing on both.
+
+---
+
 ## Stack
 
 - **Expo SDK 54** (managed workflow, new architecture enabled)

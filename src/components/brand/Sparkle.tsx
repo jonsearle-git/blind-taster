@@ -1,11 +1,12 @@
 import Svg, { Path } from 'react-native-svg';
+import { Colors } from '../../constants/colors';
 
 type Props = {
   size?: number;
   color?: string;
 };
 
-export function Sparkle({ size = 24, color = '#FFFFFF' }: Props): React.ReactElement {
+export function Sparkle({ size = 24, color = Colors.cream }: Props): React.ReactElement {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path

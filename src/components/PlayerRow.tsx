@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
   },
   avatarText: {
-    fontSize:   16,
+    fontSize:   FontSize.lg,
     fontWeight: FontWeight.black,
   },
   name: {

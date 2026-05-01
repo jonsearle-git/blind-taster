@@ -10,6 +10,7 @@ import { QuestionType } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
 import { Question, Questionnaire, SliderNumberQuestion } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
+import { questionEditorCallback } from '../../lib/questionEditorCallback';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { TextInput } from '../../components/TextInput';
 import { Button } from '../../components/Button';
@@ -73,7 +74,8 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
 
   const handlePickType = useCallback((type: QuestionType): void => {
     setShowPicker(false);
-    navigation.navigate('QuestionEditor', { questionType: type, onSave: handleSaveQuestion });
+    questionEditorCallback.current = handleSaveQuestion;
+    navigation.navigate('QuestionEditor', { questionType: type });
   }, [navigation, handleSaveQuestion]);
 
   async function handleSave(): Promise<void> {
@@ -114,7 +116,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
             <QuestionAccordionItem
               question={item}
               index={index}
-              onEdit={() => navigation.navigate('QuestionEditor', { question: item, onSave: handleSaveQuestion })}
+              onEdit={() => { questionEditorCallback.current = handleSaveQuestion; navigation.navigate('QuestionEditor', { question: item }); }}
               onRemove={(id) => setQuestions((prev) => prev.filter((x) => x.id !== id))}
             />
           )}

@@ -27,7 +27,8 @@
       "WebFetch(domain:cocoarunners.com)",
       "WebFetch(domain:and-sons.com)",
       "WebFetch(domain:torque.coffee)",
-      "Bash(npx expo *)"
+      "Bash(npx expo *)",
+      "Bash(npx expo-doctor *)"
     ]
   }
 }
