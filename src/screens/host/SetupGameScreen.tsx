@@ -1,7 +1,9 @@
 import { StyleSheet, View, Text } from 'react-native';
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
@@ -17,6 +19,22 @@ type Nav = NativeStackNavigationProp<HostStackParamList>;
 
 export default function SetupGameScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={() => navigation.getParent()?.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <Ionicons name="chevron-back" size={28} color={Colors.ink} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
+
   const { reload: reloadQ } = useQuestionnairesContext();
   const { reload: reloadG } = useGamesContext();
   const [seeding, setSeeding] = useState(false);

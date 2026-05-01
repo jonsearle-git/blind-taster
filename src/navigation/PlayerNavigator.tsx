@@ -1,7 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PlayerStackParamList } from '../types/navigation';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import JoinGameScreen from '../screens/player/JoinGameScreen';
 import PlayerLobbyScreen from '../screens/player/PlayerLobbyScreen';
 import PlayerRoundScreen from '../screens/player/PlayerRoundScreen';
@@ -13,10 +13,14 @@ export function PlayerNavigator(): React.ReactElement {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle:      { backgroundColor: Colors.surface },
-        headerTintColor:  Colors.textPrimary,
-        headerTitleStyle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
-        headerShadowVisible: false,
+        headerStyle:                 { backgroundColor: Colors.cream },
+        headerTintColor:             Colors.ink,
+        headerTitleStyle:            { fontFamily: FontFamily.heading, fontSize: FontSize.lg, fontWeight: FontWeight.black as '900', color: Colors.ink },
+        headerTitleAlign:            'center',
+        headerShadowVisible:         false,
+        headerBackTitleVisible:      false,
+        headerBackTitle:             '',
+        headerBackButtonDisplayMode: 'minimal',
       }}
     >
       <Stack.Screen name="JoinGame"      component={JoinGameScreen}      options={{ title: 'Join Game' }} />

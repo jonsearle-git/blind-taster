@@ -47,11 +47,14 @@ export function HostNavigator(): React.ReactElement {
         headerStyle:            { backgroundColor: Colors.cream },
         headerTintColor:        Colors.ink,
         headerTitleStyle:       { fontFamily: FontFamily.heading, fontSize: FontSize.lg, fontWeight: FontWeight.black as '900', color: Colors.ink },
-        headerShadowVisible:    false,
-        headerBackTitleVisible: false,
+        headerTitleAlign:            'center',
+        headerShadowVisible:         false,
+        headerBackTitleVisible:      false,
+        headerBackTitle:             '',
+        headerBackButtonDisplayMode: 'minimal',
       }}
     >
-      <Stack.Screen name="SetupGame" component={SetupGameScreen} options={{ title: 'Host a Game' }} />
+      <Stack.Screen name="SetupGame"            component={SetupGameScreen}            options={{ title: 'Host a Game' }} />
       <Stack.Screen name="Questionnaires"       component={QuestionnairesScreen}       options={{ title: 'Questionnaires' }} />
       <Stack.Screen name="Games"                component={GamesScreen}                options={{ title: 'Games' }} />
       <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} options={{ title: 'Questionnaire' }} />

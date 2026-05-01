@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, Pressable, Keyboard, ScrollView, BackHandler } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -58,18 +59,14 @@ export default function RoundsBuilderScreen(): React.ReactElement {
     if (step === 0) {
       navigation.setOptions({
         title: existingGame ? 'Edit Game' : 'New Game',
-        headerLeft: () => (
-          <Pressable onPress={() => navigation.goBack()} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={styles.headerBackText}>‹</Text>
-          </Pressable>
-        ),
+        headerLeft: undefined,
       });
     } else {
       navigation.setOptions({
         title: `Round ${step} of ${rounds.length}`,
         headerLeft: () => (
-          <Pressable onPress={goBack} style={styles.headerBack} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={styles.headerBackText}>‹</Text>
+          <Pressable onPress={goBack} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+            <Ionicons name="chevron-back" size={28} color={Colors.ink} />
           </Pressable>
         ),
       });
@@ -215,8 +212,6 @@ export default function RoundsBuilderScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  headerBack:           { paddingHorizontal: Spacing.sm },
-  headerBackText:       { color: Colors.textPrimary, fontSize: FontSize.xl },
   setupForm:            { gap: Spacing.lg },
   spacer:               { flex: 1 },
   setupFooter:          { gap: Spacing.sm, paddingBottom: Spacing.sm },

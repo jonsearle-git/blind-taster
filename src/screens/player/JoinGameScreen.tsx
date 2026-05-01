@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, KeyboardAvoidingView, Platform, ScrollView, Modal, Pressable } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -35,6 +36,16 @@ export default function JoinGameScreen(): React.ReactElement {
   const route       = useRoute<Route>();
 
   const { state, sendRef, dispatch } = useGameContext();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable onPress={() => navigation.getParent()?.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+          <Ionicons name="chevron-back" size={28} color={Colors.ink} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
   const { handleMessage }            = useGameState();
   const { requestJoin }              = usePlayerActions();
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
