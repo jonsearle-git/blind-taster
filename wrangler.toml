@@ -9,4 +9,4 @@ class_name = "BlindTasterServer"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["BlindTasterServer"]
+new_sqlite_classes = ["BlindTasterServer"]
