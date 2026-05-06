@@ -12,8 +12,8 @@ export function usePlayerActions() {
   const submitAnswers = useCallback((answers: Answer[]): void => {
     const playerId    = state.localPlayerId;
     const roundNumber = state.gameState?.currentRound ?? 1;
-    if (!playerId) return;
-    sendRef.current?.({ type: 'submit_answers', payload: { playerId, roundNumber, answers } });
+    if (!playerId || !sendRef.current) return;
+    sendRef.current({ type: 'submit_answers', payload: { playerId, roundNumber, answers } });
   }, [sendRef, state.localPlayerId, state.gameState?.currentRound]);
 
   return { requestJoin, submitAnswers };

@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Player } from '../types/player';
 import { PlayerRow } from './PlayerRow';
 import { Divider } from './Divider';
@@ -13,21 +13,20 @@ type Props = {
 
 export function PlayerStatusList({ players, answeredIds, onKick, showScore }: Props): React.ReactElement {
   return (
-    <FlatList
-      data={players}
-      keyExtractor={(item) => item.id}
-      ItemSeparatorComponent={() => <Divider spacing={0} />}
-      contentContainerStyle={styles.list}
-      renderItem={({ item, index }) => (
-        <PlayerRow
-          player={item}
-          index={index}
-          answered={answeredIds !== undefined ? answeredIds.has(item.id) : undefined}
-          onKick={onKick}
-          showScore={showScore}
-        />
-      )}
-    />
+    <View style={styles.list}>
+      {players.map((item, index) => (
+        <View key={item.id}>
+          {index > 0 && <Divider spacing={0} />}
+          <PlayerRow
+            player={item}
+            index={index}
+            answered={answeredIds !== undefined ? answeredIds.has(item.id) : undefined}
+            onKick={onKick}
+            showScore={showScore}
+          />
+        </View>
+      ))}
+    </View>
   );
 }
 

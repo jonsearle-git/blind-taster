@@ -28,7 +28,9 @@
       "WebFetch(domain:and-sons.com)",
       "WebFetch(domain:torque.coffee)",
       "Bash(npx expo *)",
-      "Bash(npx expo-doctor *)"
+      "Bash(npx expo-doctor *)",
+      "Bash(del \"c:\\\\Users\\\\jon_s\\\\source\\\\repos\\\\blind-taster\\\\src\\\\screens\\\\host\\\\HostLeaderboardScreen.tsx\")",
+      "Bash(npx wrangler *)"
     ]
   }
 }

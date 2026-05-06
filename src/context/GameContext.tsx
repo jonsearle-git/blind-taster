@@ -10,23 +10,28 @@ type GameContextState = {
   localPlayerId:     string | null;
   pendingRequests:   JoinRequest[];
   isKicked:          boolean;
+  isAbandoned:       boolean;
   isPaused:          boolean;
   gameResults:       GameResults | null;
+  activeGameId:      string | null;
   // Post-reveal data for current round (player-facing)
   lastRoundResults:  QuestionResult[] | null;
   lastPlayerScores:  PlayerScore[] | null;
+  lastRoundLabel:    string | null;
 };
 
 type GameAction =
   | { type: 'SET_GAME_STATE';       payload: GameState }
   | { type: 'SET_HOST';             payload: boolean }
   | { type: 'SET_LOCAL_PLAYER_ID';  payload: string }
+  | { type: 'SET_ACTIVE_GAME_ID';   payload: string | null }
   | { type: 'ADD_JOIN_REQUEST';     payload: JoinRequest }
   | { type: 'REMOVE_JOIN_REQUEST';  payload: string }
   | { type: 'SET_KICKED' }
+  | { type: 'SET_ABANDONED' }
   | { type: 'SET_PAUSED';           payload: boolean }
   | { type: 'SET_GAME_RESULTS';     payload: GameResults }
-  | { type: 'SET_ROUND_RESULTS';    payload: { questionResults: QuestionResult[]; playerScores: PlayerScore[] } }
+  | { type: 'SET_ROUND_RESULTS';    payload: { questionResults: QuestionResult[]; playerScores: PlayerScore[]; roundLabel: string | null } }
   | { type: 'CLEAR_ROUND_RESULTS' }
   | { type: 'RESET' };
 
@@ -36,10 +41,13 @@ const initialState: GameContextState = {
   localPlayerId:     null,
   pendingRequests:   [],
   isKicked:          false,
+  isAbandoned:       false,
   isPaused:          false,
   gameResults:       null,
+  activeGameId:      null,
   lastRoundResults:  null,
   lastPlayerScores:  null,
+  lastRoundLabel:    null,
 };
 
 function reducer(state: GameContextState, action: GameAction): GameContextState {
@@ -48,6 +56,8 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
       return { ...state, gameState: action.payload };
     case 'SET_HOST':
       return { ...state, isHost: action.payload };
+    case 'SET_ACTIVE_GAME_ID':
+      return { ...state, activeGameId: action.payload };
     case 'SET_LOCAL_PLAYER_ID':
       return { ...state, localPlayerId: action.payload };
     case 'ADD_JOIN_REQUEST':
@@ -58,6 +68,8 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
       return { ...state, pendingRequests: state.pendingRequests.filter((r) => r.playerId !== action.payload) };
     case 'SET_KICKED':
       return { ...state, isKicked: true };
+    case 'SET_ABANDONED':
+      return { ...state, isAbandoned: true };
     case 'SET_PAUSED':
       return { ...state, isPaused: action.payload };
     case 'SET_GAME_RESULTS':
@@ -67,9 +79,10 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
         ...state,
         lastRoundResults: action.payload.questionResults,
         lastPlayerScores: action.payload.playerScores,
+        lastRoundLabel:   action.payload.roundLabel,
       };
     case 'CLEAR_ROUND_RESULTS':
-      return { ...state, lastRoundResults: null, lastPlayerScores: null };
+      return { ...state, lastRoundResults: null, lastPlayerScores: null, lastRoundLabel: null };
     case 'RESET':
       return initialState;
     default:

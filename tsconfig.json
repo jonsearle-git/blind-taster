@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["src/party/server.ts"]
+  "exclude": ["src/party"]
 }

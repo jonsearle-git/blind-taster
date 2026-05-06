@@ -33,8 +33,8 @@ export function AppNavigator(): React.ReactElement {
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home"   component={HomeScreen} />
-        <Stack.Screen name="Host"   component={HostNavigator} />
-        <Stack.Screen name="Player" component={PlayerNavigator} />
+        <Stack.Screen name="Host"   component={HostNavigator}   options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Player" component={PlayerNavigator} options={{ gestureEnabled: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

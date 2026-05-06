@@ -36,6 +36,8 @@ export default function JoinGameScreen(): React.ReactElement {
   const route       = useRoute<Route>();
 
   const { state, sendRef, dispatch } = useGameContext();
+  const localPlayerIdRef = useRef<string | null>(null);
+  localPlayerIdRef.current = state.localPlayerId;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -86,6 +88,9 @@ export default function JoinGameScreen(): React.ReactElement {
       if (pendingJoinRef.current) {
         pendingJoinRef.current = false;
         requestJoin(name.trim());
+      } else if (localPlayerIdRef.current) {
+        // Reconnecting after a drop — restore the admitted session
+        sendRef.current?.({ type: 'restore_player', payload: { playerId: localPlayerIdRef.current } });
       }
     },
   });
@@ -94,6 +99,16 @@ export default function JoinGameScreen(): React.ReactElement {
     sendRef.current = send;
     return () => { sendRef.current = null; };
   }, [send, sendRef]);
+
+  // Periodic state sync — ensures the player never stays stuck if a message was lost
+  // or the connection was briefly zombie. Fires every 10 s once admitted.
+  useEffect(() => {
+    if (!state.localPlayerId) return;
+    const id = setInterval(() => {
+      sendRef.current?.({ type: 'sync_state' });
+    }, 10000);
+    return () => clearInterval(id);
+  }, [state.localPlayerId, sendRef]);
 
   useEffect(() => {
     if (state.localPlayerId) navigation.navigate('PlayerLobby');

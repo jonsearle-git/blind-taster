@@ -19,7 +19,25 @@ import {
 type ConnState = { role: 'host' | 'player' | 'pending'; playerId?: string };
 
 interface Env {
-  main: DurableObjectNamespace;
+  main:              DurableObjectNamespace;
+  ROOM_SIGNING_KEY:  string;
+  CONNECT_LIMITER:   RateLimit;
+}
+
+// ─── HMAC helpers ────────────────────────────────────────────────────────────
+
+async function verifyRoomSig(roomCode: string, sigHex: string, keyHex: string): Promise<boolean> {
+  try {
+    if (!sigHex) return false;
+    // Must match the keyed hash computed by expo-crypto on the client:
+    // SHA256(key + ":" + roomCode + ":" + key)
+    const input      = `${keyHex}:${roomCode}:${keyHex}`;
+    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+    const expected   = Array.from(new Uint8Array(hashBuffer), b => b.toString(16).padStart(2, '0')).join('');
+    return expected === sigHex;
+  } catch {
+    return false;
+  }
 }
 
 export class BlindTasterServer extends Party.Server<Env> {
@@ -38,31 +56,43 @@ export class BlindTasterServer extends Party.Server<Env> {
   };
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext): void {
+    // S1: cap room size — reject connections once limit is reached
+    if (this.s.players.size + this.s.pending.size >= 50) {
+      conn.close(1008, 'room full'); return;
+    }
+
     const params = new URL(ctx.request.url).searchParams;
     const isHost = params.get('isHost') === '1';
-    const token  = params.get('token') ?? '';
 
     if (isHost) {
-      // C1: verify or register host token
-      if (this.hostToken === null) {
-        if (token.length < 32) { conn.close(1008, 'invalid token'); return; }
-        this.hostToken = token;
-      } else if (token !== this.hostToken) {
-        conn.close(1008, 'invalid token'); return;
-      }
-      conn.setState({ role: 'host' } satisfies ConnState);
-      this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.name) });
-
-      if (this.s.phase === GamePhase.GameOver) {
-        // Resend final results so host can navigate to results screen after reconnect.
-        this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
-      } else if (this.s.phase !== GamePhase.Lobby) {
-        // Cancel the end-game alarm — host is back
-        void this.ctx.storage.deleteAlarm();
-        this.broadcastToPlayers({ type: 'game_resumed' });
-      }
+      // S2: async HMAC verification runs in background; connection state is set only after success
+      void this.verifyAndAdmitHost(conn, params);
     } else {
       conn.setState({ role: 'pending' } satisfies ConnState);
+    }
+  }
+
+  private async verifyAndAdmitHost(conn: Party.Connection, params: URLSearchParams): Promise<void> {
+    // S2: reject if room signature is invalid — only the app can create rooms
+    const sig   = params.get('sig')   ?? '';
+    const token = params.get('token') ?? '';
+    if (!(await verifyRoomSig(this.name, sig, this.env.ROOM_SIGNING_KEY))) {
+      conn.close(1008, 'invalid room signature'); return;
+    }
+    // C1: verify or register host token
+    if (this.hostToken === null) {
+      if (token.length < 32) { conn.close(1008, 'invalid token'); return; }
+      this.hostToken = token;
+    } else if (token !== this.hostToken) {
+      conn.close(1008, 'invalid token'); return;
+    }
+    conn.setState({ role: 'host' } satisfies ConnState);
+    this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.name) });
+    if (this.s.phase === GamePhase.GameOver) {
+      this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
+    } else if (this.s.phase !== GamePhase.Lobby) {
+      void this.ctx.storage.deleteAlarm();
+      this.broadcastToPlayers({ type: 'game_resumed' });
     }
   }
 
@@ -78,18 +108,20 @@ export class BlindTasterServer extends Party.Server<Env> {
     // C2: enforce role-based authorization
     const cs = sender.state as ConnState | null;
     const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','advance_round','kick_player','end_game']);
-    const PLAYER_ONLY  = new Set(['submit_answers']);
-    const PENDING_ONLY = new Set(['request_join']);
+    const PLAYER_ONLY  = new Set(['submit_answers', 'sync_state']);
+    const PENDING_ONLY = new Set(['request_join', 'restore_player']);
     if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
     if (PLAYER_ONLY.has(msg.type)  && cs?.role !== 'player')  return;
     if (PENDING_ONLY.has(msg.type) && cs?.role !== 'pending') return;
 
     switch (msg.type) {
-      case 'request_join':   return this.handleRequestJoin(sender, msg.payload.name);
+      case 'request_join':    return this.handleRequestJoin(sender, msg.payload.name);
+      case 'restore_player':  return this.handleRestorePlayer(sender, msg.payload.playerId);
       case 'admit_player':   return this.handleAdmit(msg.payload.playerId);
       case 'deny_player':    return this.handleDeny(msg.payload.playerId);
       case 'start_game':     return this.handleStartGame(msg.payload.questionnaire, msg.payload.rounds);
       case 'submit_answers': return this.handleSubmitAnswers(sender, msg.payload);
+      case 'sync_state':     return this.send(sender, { type: 'game_state', payload: buildGameState(this.s, this.name) });
       case 'reveal_answers': return this.handleRevealAnswers();
       case 'advance_round':  return this.handleAdvanceRound();
       case 'kick_player':    return this.handleKick(msg.payload.playerId);
@@ -105,7 +137,13 @@ export class BlindTasterServer extends Party.Server<Env> {
       void this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
     } else if (cs?.role === 'player' && cs.playerId) {
       const player = this.s.players.get(cs.playerId);
-      if (player) { player.connectionId = null; player.status = PlayerStatus.Disconnected; }
+      // Only clear connectionId if this closing connection is still the active one.
+      // onConnect for a reconnect can fire before onClose for the old connection, so we
+      // must not stomp a newer connectionId.
+      if (player && player.connectionId === conn.id) {
+        player.connectionId = null;
+        player.status = PlayerStatus.Disconnected;
+      }
       this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
     } else if (cs?.role === 'pending') {
       this.s.pending.delete(conn.id);
@@ -120,6 +158,16 @@ export class BlindTasterServer extends Party.Server<Env> {
   }
 
   // ─── Message handlers ────────────────────────────────────────────────────────
+
+  private handleRestorePlayer(conn: Party.Connection, playerId: string): void {
+    const player = this.s.players.get(playerId);
+    if (!player) return;
+    player.connectionId = conn.id;
+    player.status = PlayerStatus.Connected;
+    conn.setState({ role: 'player', playerId } satisfies ConnState);
+    this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.name) });
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
+  }
 
   private handleRequestJoin(conn: Party.Connection, name: string): void {
     // M1: validate name server-side
@@ -228,10 +276,10 @@ export class BlindTasterServer extends Party.Server<Env> {
       const conn = player.connectionId ? this.getConnection(player.connectionId) : null;
       if (!conn) continue;
       const qr = roundMap.get(player.id)?.questionResults ?? [];
-      this.send(conn, { type: 'answers_revealed', payload: { roundNumber: currentRound, questionResults: qr, playerScores } });
+      this.send(conn, { type: 'answers_revealed', payload: { roundNumber: currentRound, roundLabel: currentRoundData.label, questionResults: qr, playerScores } });
     }
     const host = this.findHost();
-    if (host) this.send(host, { type: 'answers_revealed', payload: { roundNumber: currentRound, questionResults: [], playerScores } });
+    if (host) this.send(host, { type: 'answers_revealed', payload: { roundNumber: currentRound, roundLabel: currentRoundData.label, questionResults: [], playerScores } });
     this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
   }
 
@@ -258,6 +306,15 @@ export class BlindTasterServer extends Party.Server<Env> {
 
   private handleEndGame(): void {
     if (this.s.phase === GamePhase.GameOver) return; // H4: idempotency guard
+    // Host abandoned lobby before game started — kick admitted players rather than showing results
+    if (this.s.phase === GamePhase.Lobby) {
+      for (const player of this.s.players.values()) {
+        const conn = player.connectionId ? this.getConnection(player.connectionId) : null;
+        if (conn) { this.send(conn, { type: 'game_abandoned' }); conn.close(1000, 'lobby abandoned'); }
+      }
+      this.s.phase = GamePhase.GameOver;
+      return;
+    }
     this.s.phase = GamePhase.GameOver;
     const results = buildGameResults(this.s);
     this.broadcastToAdmitted({ type: 'game_ended', payload: results });
@@ -295,6 +352,12 @@ export class BlindTasterServer extends Party.Server<Env> {
 // Worker entry point — routes /parties/main/:roomCode to BlindTasterServer
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
+    // Rate limit by IP: 20 WebSocket upgrade requests per minute per Cloudflare location
+    const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown';
+    const { success } = await env.CONNECT_LIMITER.limit({ key: ip });
+    if (!success) {
+      return new Response('Too many requests', { status: 429 });
+    }
     return (await routePartykitRequest(req, env)) ?? new Response('Not found', { status: 404 });
   },
 };

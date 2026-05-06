@@ -55,7 +55,17 @@ export default function GamesScreen(): React.ReactElement {
 
   function doHost(game: SavedGame): void {
     dispatch({ type: 'RESET' });
+    dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: game.id });
     navigation.navigate('HostLobby', { questionnaireId: game.questionnaireId, rounds: game.rounds });
+  }
+
+  function handleRejoin(game: SavedGame): void {
+    const phase = state.gameState?.phase;
+    if (phase === GamePhase.Lobby) {
+      navigation.navigate('HostLobby', { questionnaireId: game.questionnaireId, rounds: game.rounds });
+    } else {
+      navigation.navigate('HostInGame');
+    }
   }
 
   function handleHost(game: SavedGame): void {
@@ -105,61 +115,86 @@ export default function GamesScreen(): React.ReactElement {
           data={games}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => <Divider spacing={0} />}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              {editMode ? (
-                <Pressable
-                  onPress={() => navigation.navigate('RoundsBuilder', { gameId: item.id })}
-                  style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit ${item.name}`}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.rowMeta}>
-                      {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
-                    </Text>
-                  </View>
-                  <Text style={styles.chevronEdit}>›</Text>
-                </Pressable>
-              ) : (
-                <View style={styles.rowMain}>
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.rowMeta}>
-                      {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
-                    </Text>
-                  </View>
+          renderItem={({ item }) => {
+            const isActive = state.activeGameId === item.id &&
+              state.gameState?.phase !== undefined &&
+              state.gameState.phase !== GamePhase.GameOver;
+            return (
+              <Pressable
+                onPress={isActive && !editMode ? () => handleRejoin(item) : undefined}
+                style={({ pressed }) => [
+                  styles.row,
+                  isActive && styles.rowActive,
+                  pressed && isActive && !editMode && styles.rowPressed,
+                ]}
+              >
+                {editMode ? (
                   <Pressable
-                    onPress={() => setShoppingList(item)}
-                    style={styles.listBtn}
+                    onPress={() => navigation.navigate('RoundsBuilder', { gameId: item.id })}
+                    style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
                     accessibilityRole="button"
-                    accessibilityLabel={`Answers for ${item.name}`}
+                    accessibilityLabel={`Edit ${item.name}`}
                   >
-                    <Text style={styles.listText}>Answers</Text>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowName, isActive && styles.rowNameActive]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.rowMeta, isActive && styles.rowMetaActive]}>
+                        {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
+                      </Text>
+                    </View>
+                    <Text style={styles.chevronEdit}>›</Text>
                   </Pressable>
+                ) : (
+                  <View style={styles.rowMain}>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowName, isActive && styles.rowNameActive]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.rowMeta, isActive && styles.rowMetaActive]}>
+                        {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
+                      </Text>
+                    </View>
+                    {isActive ? (
+                      <Pressable
+                        onPress={() => handleRejoin(item)}
+                        style={styles.rejoinBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Rejoin ${item.name}`}
+                      >
+                        <Text style={styles.rejoinText}>Live ▶</Text>
+                      </Pressable>
+                    ) : (
+                      <>
+                        <Pressable
+                          onPress={() => setShoppingList(item)}
+                          style={styles.listBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Answers for ${item.name}`}
+                        >
+                          <Text style={styles.listText}>Answers</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleHost(item)}
+                          style={styles.hostBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Host ${item.name}`}
+                        >
+                          <Text style={styles.hostText}>Host ▶</Text>
+                        </Pressable>
+                      </>
+                    )}
+                  </View>
+                )}
+                {editMode && (
                   <Pressable
-                    onPress={() => handleHost(item)}
-                    style={styles.hostBtn}
+                    onPress={() => handleDelete(item)}
+                    style={styles.deleteBtn}
                     accessibilityRole="button"
-                    accessibilityLabel={`Host ${item.name}`}
+                    accessibilityLabel={`Delete ${item.name}`}
                   >
-                    <Text style={styles.hostText}>Host ▶</Text>
+                    <Text style={styles.deleteText}>✕</Text>
                   </Pressable>
-                </View>
-              )}
-              {editMode && (
-                <Pressable
-                  onPress={() => handleDelete(item)}
-                  style={styles.deleteBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${item.name}`}
-                >
-                  <Text style={styles.deleteText}>✕</Text>
-                </Pressable>
-              )}
-            </View>
-          )}
+                )}
+              </Pressable>
+            );
+          }}
         />
       )}
 
@@ -188,17 +223,22 @@ export default function GamesScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   headerBtn:     { paddingHorizontal: Spacing.sm },
   headerBtnText: { color: Colors.primary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
-  row:         { flexDirection: 'row', alignItems: 'center' },
-  rowMain:     { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
-  rowPressed:  { opacity: 0.7 },
-  rowText:     { flex: 1, gap: Spacing.xs },
-  rowName:     { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  rowMeta:     { color: Colors.textSecondary, fontSize: FontSize.sm },
+  row:           { flexDirection: 'row', alignItems: 'center' },
+  rowActive:     { backgroundColor: Colors.mint, borderRadius: Spacing.sm, marginVertical: 2, paddingHorizontal: Spacing.sm },
+  rowMain:       { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
+  rowPressed:    { opacity: 0.7 },
+  rowText:       { flex: 1, gap: Spacing.xs },
+  rowName:       { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
+  rowNameActive: { color: Colors.ink, fontWeight: FontWeight.black },
+  rowMeta:       { color: Colors.textSecondary, fontSize: FontSize.sm },
+  rowMetaActive: { color: Colors.ink, opacity: 0.7 },
   chevronEdit: { color: Colors.textDisabled, fontSize: FontSize.xl },
   listBtn:     { backgroundColor: Colors.surfaceElevated, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', minWidth: 72 },
   listText:    { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
   hostBtn:     { backgroundColor: Colors.primary, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, alignItems: 'center', minWidth: 72 },
   hostText:    { color: Colors.surface, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  rejoinBtn:   { backgroundColor: Colors.ink, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, alignItems: 'center', minWidth: 72 },
+  rejoinText:  { color: Colors.cream, fontSize: FontSize.sm, fontWeight: FontWeight.black },
   deleteBtn:   { padding: Spacing.md },
   deleteText:  { color: Colors.error, fontSize: FontSize.md },
 });

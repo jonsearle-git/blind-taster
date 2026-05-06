@@ -18,15 +18,14 @@ export function PlayerNavigator(): React.ReactElement {
         headerTitleStyle:            { fontFamily: FontFamily.heading, fontSize: FontSize.lg, fontWeight: FontWeight.black as '900', color: Colors.ink },
         headerTitleAlign:            'center',
         headerShadowVisible:         false,
-        headerBackTitleVisible:      false,
-        headerBackTitle:             '',
         headerBackButtonDisplayMode: 'minimal',
       }}
     >
       <Stack.Screen name="JoinGame"      component={JoinGameScreen}      options={{ title: 'Join Game' }} />
-      <Stack.Screen name="PlayerLobby"   component={PlayerLobbyScreen}   options={{ headerShown: false }} />
-      <Stack.Screen name="PlayerRound"   component={PlayerRoundScreen}   options={{ headerShown: false }} />
-      <Stack.Screen name="PlayerResults" component={PlayerResultsScreen} options={{ headerShown: false }} />
+      {/* detachPreviousScreen keeps JoinGameScreen mounted (and its socket alive) while in-game */}
+      <Stack.Screen name="PlayerLobby"   component={PlayerLobbyScreen}   options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
+      <Stack.Screen name="PlayerRound"   component={PlayerRoundScreen}   options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
+      <Stack.Screen name="PlayerResults" component={PlayerResultsScreen} options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
     </Stack.Navigator>
   );
 }

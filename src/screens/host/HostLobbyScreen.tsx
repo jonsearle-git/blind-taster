@@ -1,9 +1,9 @@
 import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NavigationAction } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight, FontFamily } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/spacing';
@@ -13,14 +13,16 @@ import { JoinRequest } from '../../types/player';
 import { useGameContext } from '../../context/GameContext';
 import { useQuestionnairesContext } from '../../context/QuestionnairesContext';
 import { usePartySocket } from '../../hooks/usePartySocket';
+import { signRoomCode } from '../../lib/roomSigning';
+import { saveHostSession, clearHostSession } from '../../lib/hostSession';
 import { useGameState } from '../../hooks/useGameState';
 import { useHostControls } from '../../hooks/useHostControls';
 import { Button } from '../../components/Button';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { QRCodeDisplay } from '../../components/QRCodeDisplay';
 import { PlayerRow } from '../../components/PlayerRow';
 import { EmptyState } from '../../components/EmptyState';
 import { Sparkle } from '../../components/brand/Sparkle';
-import { StickerCard } from '../../components/brand/StickerCard';
 
 type Nav   = NativeStackNavigationProp<HostStackParamList>;
 type Route = RouteProp<HostStackParamList, 'HostLobby'>;
@@ -40,19 +42,29 @@ function generateHostToken(): string {
 export default function HostLobbyScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { questionnaireId, rounds } = route.params;
+  const { questionnaireId, rounds, savedRoomCode, savedHostToken } = route.params;
 
-  const { state, sendRef }         = useGameContext();
+  const { state, sendRef, dispatch } = useGameContext();
   const { questionnaires }         = useQuestionnairesContext();
   const { handleMessage }          = useGameState();
   const { admitPlayer, denyPlayer, startGame } = useHostControls();
 
-  const [roomCode]   = useState(generateRoomCode);
-  const [hostToken]  = useState(generateHostToken);
+  const [roomCode]         = useState(() => savedRoomCode ?? generateRoomCode());
+  const [hostToken]        = useState(() => savedHostToken ?? generateHostToken());
+  const [roomSig, setRoomSig] = useState('');
+  const [showAbandon, setShowAbandon] = useState(false);
+  const pendingNavRef      = useRef<NavigationAction | null>(null);
 
   const questionnaire = questionnaires.find((q) => q.id === questionnaireId) ?? null;
 
-  const { send } = usePartySocket({ roomCode, isHost: true, hostToken, onMessage: handleMessage });
+  useEffect(() => {
+    signRoomCode(roomCode).then((sig) => {
+      setRoomSig(sig);
+      void saveHostSession({ questionnaireId, rounds, roomCode, hostToken });
+    });
+  }, [roomCode, hostToken, questionnaireId, rounds]);
+
+  const { send } = usePartySocket({ roomCode, isHost: true, hostToken, sig: roomSig, onMessage: handleMessage });
 
   useEffect(() => {
     sendRef.current = send;
@@ -60,10 +72,32 @@ export default function HostLobbyScreen(): React.ReactElement {
   }, [send, sendRef]);
 
   useEffect(() => {
+    dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: roomCode });
+    return () => { dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: null }); };
+  }, [dispatch, roomCode]);
+
+  // Intercept back navigation — prompt before abandoning the room
+  useEffect(() => {
+    return navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault();
+      pendingNavRef.current = e.data.action;
+      setShowAbandon(true);
+    });
+  }, [navigation]);
+
+  useEffect(() => {
     if (state.gameState?.phase === GamePhase.InRound) {
       navigation.navigate('HostInGame');
     }
   }, [state.gameState?.phase, navigation]);
+
+  function handleAbandonConfirm(): void {
+    setShowAbandon(false);
+    sendRef.current?.({ type: 'end_game' }); // server kicks admitted players before we reset
+    void clearHostSession();
+    dispatch({ type: 'RESET' });
+    if (pendingNavRef.current) navigation.dispatch(pendingNavRef.current);
+  }
 
   const admittedPlayers = state.gameState?.players ?? [];
   const pendingRequests = state.pendingRequests;
@@ -75,79 +109,79 @@ export default function HostLobbyScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <LinearGradient colors={[Colors.sun, Colors.melon]} style={styles.gradient}>
-        {/* Decorative sparkles */}
-        <View style={styles.sparkle1} pointerEvents="none">
-          <Sparkle size={28} color={Colors.cream} />
-        </View>
-        <View style={styles.sparkle2} pointerEvents="none">
-          <Sparkle size={18} color={Colors.ink} />
-        </View>
+    <LinearGradient colors={[Colors.sun, Colors.melon]} style={styles.gradient}>
+      {/* Decorative sparkles */}
+      <View style={styles.sparkle1} pointerEvents="none">
+        <Sparkle size={28} color={Colors.cream} />
+      </View>
+      <View style={styles.sparkle2} pointerEvents="none">
+        <Sparkle size={18} color={Colors.ink} />
+      </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.inner}>
-          {/* Room code sticker */}
-          <View style={styles.codeSection}>
-            <Text style={styles.codeLabel}>Room code</Text>
-            <StickerCard shadowOffset={5} borderRadius={16} style={styles.codeStickerWrapper}>
-              <Text style={styles.codeText}>{roomCode}</Text>
-            </StickerCard>
-          </View>
-
-          {/* QR code */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.inner}>
+        {/* Game name + QR code */}
+        <View style={styles.codeSection}>
+          {questionnaire?.name ? (
+            <Text style={styles.gameName}>{questionnaire.name}</Text>
+          ) : null}
           <QRCodeDisplay roomCode={roomCode} />
+        </View>
 
-          {/* Pending join requests */}
-          {pendingRequests.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Waiting to Join</Text>
-              <View style={styles.cardList}>
-                {pendingRequests.map((item) => (
-                  <JoinRequestRow
-                    key={item.playerId}
-                    request={item}
-                    onAdmit={admitPlayer}
-                    onDeny={denyPlayer}
-                  />
-                ))}
-              </View>
+        {/* Pending join requests */}
+        {pendingRequests.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Waiting to Join</Text>
+            <View style={styles.cardList}>
+              {pendingRequests.map((item) => (
+                <JoinRequestRow
+                  key={item.playerId}
+                  request={item}
+                  onAdmit={admitPlayer}
+                  onDeny={denyPlayer}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Player list */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>
+            The crew ({admittedPlayers.length})
+          </Text>
+          {admittedPlayers.length === 0 ? (
+            <EmptyState title="No players yet" message="Share the room code to invite players." />
+          ) : (
+            <View style={styles.cardList}>
+              {admittedPlayers.map((item, index) => (
+                <PlayerRow key={item.id} player={item} index={index} />
+              ))}
             </View>
           )}
-
-          {/* Player list */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>
-              The crew ({admittedPlayers.length})
-            </Text>
-            {admittedPlayers.length === 0 ? (
-              <EmptyState title="No players yet" message="Share the room code to invite players." />
-            ) : (
-              <View style={styles.cardList}>
-                {admittedPlayers.map((item, index) => (
-                  <PlayerRow key={item.id} player={item} index={index} />
-                ))}
-              </View>
-            )}
-          </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Button
-            label="Start Game"
-            onPress={handleStartGame}
-            disabled={!canStart}
-            style={styles.footerButton}
-            accessibilityLabel={canStart ? 'Start the game' : 'Need at least one player to start'}
-          />
-          <Button
-            label="Cancel"
-            onPress={() => navigation.reset({ index: 1, routes: [{ name: 'SetupGame' }, { name: 'Games' }] })}
-            variant="secondary"
-            style={styles.footerButton}
-          />
         </View>
-      </LinearGradient>
-    </SafeAreaView>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <Button
+          label="Start Game"
+          onPress={handleStartGame}
+          disabled={!canStart}
+          style={styles.footerButton}
+          accessibilityLabel={canStart ? 'Start the game' : 'Need at least one player to start'}
+        />
+      </View>
+
+      <ConfirmDialog
+        visible={showAbandon}
+        title="Abandon Room?"
+        message="Players waiting in the lobby will be disconnected."
+        confirmLabel="Abandon"
+        cancelLabel="Stay"
+        destructive
+        onConfirm={handleAbandonConfirm}
+        onCancel={() => setShowAbandon(false)}
+      />
+    </LinearGradient>
   );
 }
 
@@ -173,10 +207,6 @@ function JoinRequestRow({ request, onAdmit, onDeny }: JoinRowProps): React.React
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex:            1,
-    backgroundColor: Colors.sun,
-  },
   gradient: {
     flex: 1,
   },
@@ -198,6 +228,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap:        Spacing.sm,
     paddingTop: Spacing.lg,
+  },
+  gameName: {
+    fontFamily:   FontFamily.display,
+    fontSize:     FontSize.xl,
+    fontWeight:   FontWeight.black,
+    color:        Colors.ink,
+    letterSpacing: -0.3,
+    textAlign:    'center',
   },
   codeLabel: {
     fontFamily:   FontFamily.body,

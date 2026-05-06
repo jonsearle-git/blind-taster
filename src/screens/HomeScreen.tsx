@@ -1,11 +1,15 @@
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/colors';
 import { FontSize, FontWeight, FontFamily } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
+import { GamePhase } from '../constants/gameConstants';
 import { RootStackParamList } from '../types/navigation';
+import { useGameContext } from '../context/GameContext';
+import { loadHostSession, type HostSession } from '../lib/hostSession';
 import { Button } from '../components/Button';
 import { Sparkle } from '../components/brand/Sparkle';
 import { Monogram } from '../components/brand/Monogram';
@@ -26,6 +30,41 @@ const STRIPES = [
 
 export default function HomeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const { state }  = useGameContext();
+  const [savedHostSession, setSavedHostSession] = useState<HostSession | null>(null);
+
+  useEffect(() => {
+    loadHostSession().then(setSavedHostSession);
+  }, []);
+
+  const phase          = state.gameState?.phase;
+  const activePhase    = phase !== undefined && phase !== GamePhase.GameOver;
+  const isActivePlayer = state.localPlayerId !== null && activePhase;
+  const isActiveHost   = state.localPlayerId === null && (activePhase || savedHostSession !== null);
+  const hasActiveGame  = isActiveHost || isActivePlayer;
+
+  function handleRejoin(): void {
+    if (isActiveHost) {
+      if (savedHostSession) {
+        navigation.navigate('Host', {
+          screen: 'HostLobby',
+          params: {
+            questionnaireId:  savedHostSession.questionnaireId,
+            rounds:           savedHostSession.rounds,
+            savedRoomCode:    savedHostSession.roomCode,
+            savedHostToken:   savedHostSession.hostToken,
+          },
+        });
+      } else {
+        navigation.navigate('Host', { screen: 'HostInGame' });
+      }
+    } else if (isActivePlayer) {
+      const screen = (phase === GamePhase.InRound || phase === GamePhase.AllAnswered || phase === GamePhase.AnswersRevealed)
+        ? 'PlayerRound'
+        : 'PlayerLobby';
+      navigation.navigate('Player', { screen });
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -74,10 +113,18 @@ export default function HomeScreen(): React.ReactElement {
             </View>
 
             <View style={styles.actions}>
+              {hasActiveGame && (
+                <Button
+                  label="Rejoin Game"
+                  onPress={handleRejoin}
+                  style={styles.actionButton}
+                />
+              )}
               <Button
                 label="Host a Game"
                 onPress={() => navigation.navigate('Host')}
                 style={styles.actionButton}
+                variant={hasActiveGame ? 'secondary' : 'primary'}
               />
               <Button
                 label="Join a Game"

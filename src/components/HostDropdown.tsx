@@ -1,51 +1,20 @@
-import { StyleSheet, View, Text, Modal, Pressable, FlatList } from 'react-native';
+import { StyleSheet, View, Text, Modal, Pressable } from 'react-native';
+import { useState } from 'react';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
-import { Spacing } from '../constants/spacing';
-import { Player } from '../types/player';
-import { PlayerStatus } from '../constants/gameConstants';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
+import { Spacing, BorderRadius } from '../constants/spacing';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Divider } from './Divider';
-import { useState } from 'react';
-
-type Tab = 'players' | 'roomCode' | 'endGame';
 
 type Props = {
-  visible: boolean;
-  roomCode: string;
-  players: Player[];
-  onClose: () => void;
-  onKick: (playerId: string) => void;
-  onEndGame: () => void;
+  visible:    boolean;
+  roomCode:   string;
+  onClose:    () => void;
+  onEndGame:  () => void;
 };
 
-export function HostDropdown({
-  visible,
-  roomCode,
-  players,
-  onClose,
-  onKick,
-  onEndGame,
-}: Props): React.ReactElement {
-  const [activeTab, setActiveTab] = useState<Tab>('players');
-  const [kickTarget, setKickTarget] = useState<Player | null>(null);
+export function HostDropdown({ visible, roomCode, onClose, onEndGame }: Props): React.ReactElement {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-
-  function handleKickRequest(player: Player): void {
-    setKickTarget(player);
-  }
-
-  function handleKickConfirm(): void {
-    if (kickTarget) {
-      onKick(kickTarget.id);
-      setKickTarget(null);
-    }
-  }
-
-  function handleEndGameRequest(): void {
-    setShowEndConfirm(true);
-  }
 
   function handleEndGameConfirm(): void {
     setShowEndConfirm(false);
@@ -55,76 +24,36 @@ export function HostDropdown({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Pressable style={styles.sheet} onPress={() => {}}>
 
-            <View style={styles.tabs}>
-              {(['players', 'roomCode', 'endGame'] as Tab[]).map((tab) => (
-                <Pressable
-                  key={tab}
-                  onPress={() => setActiveTab(tab)}
-                  style={[styles.tab, activeTab === tab && styles.activeTab]}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: activeTab === tab }}
-                >
-                  <Text style={[styles.tabLabel, activeTab === tab && styles.activeTabLabel]}>
-                    {tab === 'players' ? 'Players' : tab === 'roomCode' ? 'Room Code' : 'End Game'}
-                  </Text>
-                </Pressable>
-              ))}
+            <View style={styles.handle} />
+
+            <View style={styles.roomCodeSection}>
+              <Text style={styles.sectionLabel}>ROOM CODE</Text>
+              <Text style={styles.roomCode}>{roomCode}</Text>
             </View>
 
-            <Divider spacing={0} />
+            <QRCodeDisplay roomCode={roomCode} />
 
-            <View style={styles.content}>
-              {activeTab === 'players' && (
-                <FlatList
-                  data={players}
-                  keyExtractor={(p) => p.id}
-                  ItemSeparatorComponent={() => <Divider spacing={0} />}
-                  renderItem={({ item }) => (
-                    <View style={styles.playerRow}>
-                      <View style={[
-                        styles.dot,
-                        { backgroundColor: item.status === PlayerStatus.Connected ? Colors.success : Colors.textDisabled },
-                      ]} />
-                      <Text style={styles.playerName} numberOfLines={1}>{item.name}</Text>
-                      <Pressable
-                        onPress={() => handleKickRequest(item)}
-                        style={styles.kickButton}
-                        accessibilityLabel={`Kick ${item.name}`}
-                        accessibilityRole="button"
-                        hitSlop={Spacing.sm}
-                      >
-                        <Text style={styles.kickIcon}>✕</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                />
-              )}
+            <View style={styles.footer}>
+              <Pressable
+                onPress={() => setShowEndConfirm(true)}
+                style={styles.endBtn}
+                accessibilityLabel="End game early"
+                accessibilityRole="button"
+              >
+                <Text style={styles.endBtnLabel}>End Game Early</Text>
+              </Pressable>
 
-              {activeTab === 'roomCode' && (
-                <View style={styles.qrContainer}>
-                  <QRCodeDisplay roomCode={roomCode} />
-                </View>
-              )}
-
-              {activeTab === 'endGame' && (
-                <View style={styles.endGameContainer}>
-                  <Text style={styles.endGameMessage}>
-                    End the game now and jump to results with data collected so far.
-                  </Text>
-                  <Pressable
-                    onPress={handleEndGameRequest}
-                    style={styles.endGameButton}
-                    accessibilityLabel="End game early"
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.endGameButtonLabel}>End Game Early</Text>
-                  </Pressable>
-                </View>
-              )}
+              <Pressable
+                onPress={onClose}
+                style={styles.cancelBtn}
+                accessibilityRole="button"
+              >
+                <Text style={styles.cancelBtnLabel}>Close</Text>
+              </Pressable>
             </View>
 
           </Pressable>
@@ -132,20 +61,11 @@ export function HostDropdown({
       </Modal>
 
       <ConfirmDialog
-        visible={kickTarget !== null}
-        title="Remove Player"
-        message={`Remove ${kickTarget?.name ?? ''} from the game?`}
-        confirmLabel="Remove"
-        destructive
-        onConfirm={handleKickConfirm}
-        onCancel={() => setKickTarget(null)}
-      />
-
-      <ConfirmDialog
         visible={showEndConfirm}
         title="End Game Early"
         message="This will end the game immediately and show results with data collected so far."
         confirmLabel="End Game"
+        cancelLabel="Cancel"
         destructive
         onConfirm={handleEndGameConfirm}
         onCancel={() => setShowEndConfirm(false)}
@@ -161,85 +81,78 @@ const styles = StyleSheet.create({
     justifyContent:  'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius:  Spacing.lg,
-    borderTopRightRadius: Spacing.lg,
-    maxHeight:        '70%',
-    borderTopWidth:   1,
-    borderColor:      Colors.border,
+    backgroundColor:      Colors.cream,
+    borderTopLeftRadius:  BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    borderTopWidth:       2.5,
+    borderLeftWidth:      2.5,
+    borderRightWidth:     2.5,
+    borderColor:          Colors.ink,
+    paddingBottom:        Spacing.xl,
+    alignItems:           'center',
+    gap:                  Spacing.md,
   },
-  tabs: {
-    flexDirection: 'row',
+  handle: {
+    width:           48,
+    height:          4,
+    borderRadius:    2,
+    backgroundColor: Colors.ink,
+    opacity:         0.2,
+    marginTop:       Spacing.sm,
   },
-  tab: {
-    flex:            1,
-    paddingVertical: Spacing.md,
-    alignItems:      'center',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-  },
-  tabLabel: {
-    color:      Colors.textDisabled,
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.medium,
-  },
-  activeTabLabel: {
-    color: Colors.textPrimary,
-  },
-  content: {
-    padding: Spacing.md,
-    flex:    1,
-  },
-  playerRow: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    paddingVertical: Spacing.sm,
-    gap:             Spacing.sm,
-  },
-  dot: {
-    width:        10,
-    height:       10,
-    borderRadius: 5,
-  },
-  playerName: {
-    flex:       1,
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.md,
-  },
-  kickButton: {
-    padding:    Spacing.xs,
-    minWidth:   44,
-    minHeight:  44,
+  roomCodeSection: {
     alignItems: 'center',
-    justifyContent: 'center',
+    gap:        Spacing.xs,
+    paddingTop: Spacing.sm,
   },
-  kickIcon: {
-    color:    Colors.error,
-    fontSize: FontSize.md,
+  sectionLabel: {
+    fontFamily:    FontFamily.bodyBold,
+    fontSize:      FontSize.xs,
+    fontWeight:    FontWeight.black,
+    color:         Colors.ink,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    opacity:       0.6,
   },
-  qrContainer: {
-    paddingVertical: Spacing.lg,
-    alignItems:      'center',
+  roomCode: {
+    fontFamily:    FontFamily.display,
+    fontSize:      FontSize.jumbo,
+    fontWeight:    FontWeight.black,
+    color:         Colors.ink,
+    letterSpacing: 4,
   },
-  endGameContainer: {
-    gap:             Spacing.lg,
-    paddingVertical: Spacing.md,
+  footer: {
+    width:         '100%',
+    paddingHorizontal: Spacing.lg,
+    gap:           Spacing.sm,
+    marginTop:     Spacing.sm,
   },
-  endGameMessage: {
-    color:    Colors.textSecondary,
-    fontSize: FontSize.md,
-  },
-  endGameButton: {
+  endBtn: {
     backgroundColor: Colors.error,
-    borderRadius:    Spacing.sm,
+    borderRadius:    BorderRadius.pill,
     paddingVertical: Spacing.md,
     alignItems:      'center',
+    borderWidth:     2.5,
+    borderColor:     Colors.ink,
   },
-  endGameButtonLabel: {
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.bold,
+  endBtnLabel: {
+    fontFamily:  FontFamily.heading,
+    color:       Colors.cream,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.black,
+  },
+  cancelBtn: {
+    backgroundColor: Colors.surface,
+    borderRadius:    BorderRadius.pill,
+    paddingVertical: Spacing.md,
+    alignItems:      'center',
+    borderWidth:     2.5,
+    borderColor:     Colors.ink,
+  },
+  cancelBtnLabel: {
+    fontFamily:  FontFamily.heading,
+    color:       Colors.ink,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.black,
   },
 });

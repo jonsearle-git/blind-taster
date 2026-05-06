@@ -35,21 +35,21 @@ export function ConfirmDialog({
           <View style={styles.dialog}>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.message}>{message}</Text>
-            <View style={[styles.actions, !cancelLabel && styles.actionsCenter]}>
+            <View style={styles.actions}>
+              <Button
+                label={confirmLabel}
+                onPress={onConfirm}
+                variant={destructive ? 'destructive' : 'primary'}
+                style={styles.buttonFull}
+              />
               {cancelLabel !== undefined && onCancel !== undefined && (
                 <Button
                   label={cancelLabel}
                   onPress={onCancel}
                   variant="secondary"
-                  style={styles.button}
+                  style={styles.buttonFull}
                 />
               )}
-              <Button
-                label={confirmLabel}
-                onPress={onConfirm}
-                variant={destructive ? 'destructive' : 'primary'}
-                style={cancelLabel ? styles.button : styles.buttonFull}
-              />
             </View>
           </View>
         </Pressable>
@@ -100,13 +100,8 @@ const styles = StyleSheet.create({
     lineHeight: FontSize.md * 1.5,
   },
   actions: {
-    flexDirection: 'row',
-    gap:           Spacing.sm,
-    marginTop:     Spacing.xs,
+    gap:       Spacing.sm,
+    marginTop: Spacing.xs,
   },
-  actionsCenter: {
-    justifyContent: 'center',
-  },
-  button:     { flex: 1 },
-  buttonFull: { flex: 1 },
+  buttonFull: { width: '100%' },
 });

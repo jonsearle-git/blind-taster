@@ -13,7 +13,6 @@ import { usePlayerActions } from '../../hooks/usePlayerActions';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
-import { RoundBadge } from '../../components/RoundBadge';
 import { KickedOverlay } from '../../components/KickedOverlay';
 import { GamePausedOverlay } from '../../components/GamePausedOverlay';
 import { QuestionResult } from '../../components/questions/QuestionResult';
@@ -37,6 +36,7 @@ export default function PlayerRoundScreen(): React.ReactElement {
 
   const { answers, setAnswer, clearAnswers, isComplete } = useAnswers(questions);
   const roundResults = state.lastRoundResults;
+  const roundLabel   = state.lastRoundLabel;
   const isRevealed   = roundPhase === RoundPhase.AnswersRevealed;
 
   useEffect(() => {
@@ -57,13 +57,15 @@ export default function PlayerRoundScreen(): React.ReactElement {
 
   return (
     <ScreenContainer noPadding>
-      <Banner title="Round" score={score} />
+      <Banner title={`Round ${currentRound} of ${totalRounds}`} score={score} />
 
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-        <RoundBadge current={currentRound} total={totalRounds} />
 
         {isRevealed && roundResults ? (
           <View style={styles.section}>
+            {roundLabel ? (
+              <Text style={styles.roundLabel}>{roundLabel}</Text>
+            ) : null}
             <Text style={styles.sectionLabel}>Round Results</Text>
             <View style={styles.resultsList}>
               {roundResults.map((qr) => (
@@ -112,6 +114,7 @@ const styles = StyleSheet.create({
   section:        { gap: Spacing.xl },
   questionBlock:  { gap: Spacing.sm },
   questionIndex:  { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
+  roundLabel:     { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: -0.5, textAlign: 'center' },
   sectionLabel:   { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
   waitingSection: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingVertical: Spacing.xxl },
   waitingText:    { color: Colors.textSecondary, fontSize: FontSize.md },

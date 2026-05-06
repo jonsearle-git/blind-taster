@@ -3,9 +3,22 @@ main = "src/party/server.ts"
 compatibility_date = "2025-01-01"
 tsconfig = "tsconfig.server.json"
 
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true
+
 [[durable_objects.bindings]]
 name = "main"
 class_name = "BlindTasterServer"
+
+[[ratelimits]]
+name = "CONNECT_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60
 
 [[migrations]]
 tag = "v1"

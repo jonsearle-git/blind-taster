@@ -30,11 +30,17 @@ export default function PlayerLobbyScreen(): React.ReactElement {
     navigation.getParent()?.navigate('Home');
   }
 
-  const players  = state.gameState?.players ?? [];
-  const roomCode = state.gameState?.roomCode ?? '';
+  const players       = state.gameState?.players ?? [];
+  const roomCode      = state.gameState?.roomCode ?? '';
+  const questionnaire = state.gameState?.questionnaire;
 
   useEffect(() => {
-    if (state.gameState?.phase === GamePhase.InRound) {
+    const phase = state.gameState?.phase;
+    if (
+      phase === GamePhase.InRound ||
+      phase === GamePhase.AllAnswered ||
+      phase === GamePhase.AnswersRevealed
+    ) {
       navigation.navigate('PlayerRound');
     }
   }, [state.gameState?.phase, navigation]);
@@ -52,6 +58,9 @@ export default function PlayerLobbyScreen(): React.ReactElement {
 
         {/* Room code */}
         <View style={styles.header}>
+          {questionnaire?.name ? (
+            <Text style={styles.gameName}>{questionnaire.name}</Text>
+          ) : null}
           <Text style={styles.codeLabel}>Room code</Text>
           {roomCode.length > 0 && (
             <StickerCard shadowOffset={5} borderRadius={16} style={styles.codeStickerWrapper}>
@@ -93,6 +102,11 @@ export default function PlayerLobbyScreen(): React.ReactElement {
       </LinearGradient>
 
       <KickedOverlay visible={state.isKicked} />
+      <KickedOverlay
+        visible={state.isAbandoned}
+        title="Game Abandoned"
+        message="The game was abandoned by the host."
+      />
       <GamePausedOverlay visible={state.isPaused} />
     </SafeAreaView>
   );
@@ -121,6 +135,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     alignItems:  'center',
     gap:         Spacing.sm,
+  },
+  gameName: {
+    fontFamily:   FontFamily.display,
+    fontSize:     FontSize.xl,
+    fontWeight:   FontWeight.black,
+    color:        Colors.ink,
+    letterSpacing: -0.3,
+    textAlign:    'center',
   },
   codeLabel: {
     fontFamily:   FontFamily.body,

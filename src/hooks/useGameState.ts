@@ -16,7 +16,7 @@ export function useGameState() {
       case 'answers_revealed':
         dispatch({
           type:    'SET_ROUND_RESULTS',
-          payload: { questionResults: msg.payload.questionResults, playerScores: msg.payload.playerScores },
+          payload: { questionResults: msg.payload.questionResults, playerScores: msg.payload.playerScores, roundLabel: msg.payload.roundLabel },
         });
         break;
       case 'game_ended':
@@ -33,6 +33,9 @@ export function useGameState() {
         break;
       case 'you_were_kicked':
         dispatch({ type: 'SET_KICKED' });
+        break;
+      case 'game_abandoned':
+        dispatch({ type: 'SET_ABANDONED' });
         break;
       case 'round_started':
         // Clear previous round's results when a new round begins.

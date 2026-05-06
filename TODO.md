@@ -24,6 +24,10 @@ These screens have no reference design yet — apply the design system (colours,
 | Games list | `src/screens/host/GamesScreen.tsx` |
 
 
+i'm usong a development build.
+when the host closes the app and then reopens the app, the game isn't there to be rejoined. is this expected?
+should we save the games and Ids in asyn storeage or something?
+
 ## 🟢 Polish — remaining
 
 - **App icon** — Replace `assets/icon.png` with the Monogram rendered at 1024×1024. Set `app.json` `"icon"` and `"android.adaptiveIcon.foregroundImage"`. Spec: squircle with `sun → melon → plum` gradient, `BT` in `AlfaSlabOne`, sparkle top-right.

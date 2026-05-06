@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, TextInput } from 'react-native';
+import { useState } from 'react';
 import { Colors } from '../../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/spacing';
@@ -12,8 +13,18 @@ type Props = {
 };
 
 export function PriceQuestion({ question, value, onChange, locked = false }: Props): React.ReactElement {
-  function handleChange(text: string): void {
-    const parsed = parseFloat(text);
+  const [text, setText] = useState(value !== null ? String(value) : '');
+
+  function handleChange(input: string): void {
+    // Strip everything except digits and decimal point
+    const stripped = input.replace(/[^0-9.]/g, '');
+    // Allow only one decimal point, max 2 decimal places
+    const [whole, ...rest] = stripped.split('.');
+    const normalized = rest.length > 0
+      ? `${whole}.${rest.join('').slice(0, 2)}`
+      : whole;
+    setText(normalized);
+    const parsed = parseFloat(normalized);
     if (!isNaN(parsed)) onChange(parsed);
   }
 
@@ -26,14 +37,13 @@ export function PriceQuestion({ question, value, onChange, locked = false }: Pro
         </View>
         <TextInput
           style={[styles.input, locked && styles.locked]}
-          defaultValue={value !== null ? value.toFixed(2) : ''}
+          value={text}
           onChangeText={handleChange}
           keyboardType="decimal-pad"
           editable={!locked}
           placeholder="0.00"
           placeholderTextColor={Colors.textDisabled}
           accessibilityLabel={`${question.prompt} price in ${question.currencySymbol}`}
-          fontFamily={FontFamily.heading}
         />
       </View>
     </View>

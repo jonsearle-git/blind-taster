@@ -7,6 +7,7 @@ type Options = {
   roomCode:   string;
   isHost:     boolean;
   hostToken?: string; // C1: required when isHost=true; verified by server
+  sig?:       string; // HMAC signature of the room code — required for host connections
   onMessage:  (msg: ServerMessage) => void;
   onOpen?:    () => void;
   onClose?:   () => void;
@@ -14,7 +15,7 @@ type Options = {
 };
 
 export function usePartySocket(options: Options) {
-  const { roomCode, isHost, hostToken, onMessage, onOpen, onClose, onError } = options;
+  const { roomCode, isHost, hostToken, sig, onMessage, onOpen, onClose, onError } = options;
 
   const socketRef   = useRef<PartySocket | null>(null);
   const queueRef    = useRef<ClientMessage[]>([]); // M3: messages queued while socket reconnects
@@ -23,11 +24,13 @@ export function usePartySocket(options: Options) {
 
   useEffect(() => {
     if (!roomCode) return;
+    // Host socket waits until HMAC signature is ready
+    if (isHost && !sig) return;
 
     const socket = new PartySocket({
       host:  PARTYKIT_HOST,
       room:  roomCode,
-      query: isHost ? { isHost: '1', token: hostToken ?? '' } : undefined,
+      query: isHost ? { isHost: '1', token: hostToken ?? '', sig: sig ?? '' } : undefined,
     });
 
     socket.addEventListener('message', (event: MessageEvent<string>) => {
@@ -58,7 +61,7 @@ export function usePartySocket(options: Options) {
       socketRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomCode, isHost, hostToken]);
+  }, [roomCode, isHost, hostToken, sig]);
 
   const send = useCallback((msg: ClientMessage): void => {
     const socket = socketRef.current;

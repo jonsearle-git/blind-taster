@@ -95,7 +95,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
       if (existingId) { await update(q); } else { await save(q); }
       navigation.goBack();
     } catch {
-      setError('Failed to save. Please try again.');
+      setQuestionsError('Failed to save. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -110,6 +110,7 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
         <FlatList
           data={questions}
           keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={styles.gap} />}
           ListEmptyComponent={<Text style={styles.hint}>No questions yet. Tap Add Question to start.</Text>}
           renderItem={({ item, index }) => (

@@ -4,7 +4,7 @@ import { Colors } from '../../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
 import { BorderRadius, Spacing } from '../../constants/spacing';
 
-const THUMB = 36;
+const THUMB   = 36;
 const TRACK_H = 10;
 
 type Props = {
@@ -30,42 +30,57 @@ export function RatingSlider({
 }: Props): React.ReactElement {
   const [trackWidth, setTrackWidth] = useState(0);
 
-  const trackWidthRef = useRef(0);
-  const stateRef      = useRef({ locked, min, max, step, onChange });
-  stateRef.current    = { locked, min, max, step, onChange };
+  const trackAreaRef   = useRef<View>(null);
+  const trackWidthRef  = useRef(0);
+  const trackOriginRef = useRef(0); // absolute screen X of the track container
+  const stateRef       = useRef({ locked, min, max, step, onChange });
+  stateRef.current     = { locked, min, max, step, onChange };
 
   const dp           = step < 0.05 ? 2 : step < 0.5 ? 1 : 0;
   const currentValue = value ?? min;
   const ratio        = max > min ? (currentValue - min) / (max - min) : 0;
   const thumbLeft    = trackWidth > 0 ? ratio * (trackWidth - THUMB) : 0;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => !stateRef.current.locked,
-      onMoveShouldSetPanResponder:  () => !stateRef.current.locked,
-      onPanResponderGrant: (evt) => handleTouch(evt.nativeEvent.locationX),
-      onPanResponderMove:  (evt) => handleTouch(evt.nativeEvent.locationX),
-    })
-  ).current;
-
-  function handleTouch(x: number): void {
+  function applyScreenX(screenX: number): void {
     const { locked: l, min: mn, max: mx, step: st, onChange: cb } = stateRef.current;
     const w = trackWidthRef.current;
     if (l || w <= THUMB) return;
-    const r       = Math.max(0, Math.min(1, (x - THUMB / 2) / (w - THUMB)));
+    const relX    = screenX - trackOriginRef.current;
+    const r       = Math.max(0, Math.min(1, (relX - THUMB / 2) / (w - THUMB)));
     const dp2     = st < 0.05 ? 2 : st < 0.5 ? 1 : 0;
     const snapped = parseFloat((Math.round((mn + r * (mx - mn)) / st) * st).toFixed(dp2));
     cb(parseFloat(Math.min(mx, Math.max(mn, snapped)).toFixed(dp2)));
   }
 
+  const panResponder = useRef(
+    PanResponder.create({
+      // Claim in capture phase so the parent ScrollView never intercepts the touch
+      onStartShouldSetPanResponder:        () => !stateRef.current.locked,
+      onStartShouldSetPanResponderCapture: () => !stateRef.current.locked,
+      onMoveShouldSetPanResponder:         () => !stateRef.current.locked,
+      onMoveShouldSetPanResponderCapture:  () => !stateRef.current.locked,
+      // Never give the responder back once we have it
+      onPanResponderTerminationRequest:    () => false,
+      onShouldBlockNativeResponder:        () => true,
+      // Use absolute screen coords from gestureState — immune to child-view locationX resets
+      onPanResponderGrant: (_evt, gs) => applyScreenX(gs.x0),
+      onPanResponderMove:  (_evt, gs) => applyScreenX(gs.moveX),
+    })
+  ).current;
+
   return (
     <View style={styles.root}>
       <View
+        ref={trackAreaRef}
         style={styles.trackArea}
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
           trackWidthRef.current = w;
           setTrackWidth(w);
+          // Measure absolute screen position so applyScreenX can convert correctly
+          trackAreaRef.current?.measure((_x, _y, _w, _h, pageX) => {
+            trackOriginRef.current = pageX;
+          });
         }}
         {...panResponder.panHandlers}
       >
@@ -93,8 +108,8 @@ export function RatingSlider({
 const styles = StyleSheet.create({
   root: { gap: Spacing.xs },
   trackArea: {
-    height:   THUMB + Spacing.sm,
-    position: 'relative',
+    height:         THUMB + Spacing.sm,
+    position:       'relative',
     justifyContent: 'center',
   },
   trackBg: {
@@ -139,8 +154,8 @@ const styles = StyleSheet.create({
     color:      Colors.cream,
   },
   labels: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
+    flexDirection:     'row',
+    justifyContent:    'space-between',
     paddingHorizontal: THUMB / 2,
   },
   label: {

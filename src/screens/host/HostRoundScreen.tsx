@@ -1,61 +1,147 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
-import { FontSize } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { RoundPhase } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
+import { Player, JoinRequest } from '../../types/player';
 import { useGameContext } from '../../context/GameContext';
+import { clearHostSession } from '../../lib/hostSession';
 import { useHostControls } from '../../hooks/useHostControls';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
-import { RoundBadge } from '../../components/RoundBadge';
+import { PlayerRow } from '../../components/PlayerRow';
 import { PlayerStatusList } from '../../components/PlayerStatusList';
 import { Button } from '../../components/Button';
 import { GamePausedOverlay } from '../../components/GamePausedOverlay';
 import { HostDropdown } from '../../components/HostDropdown';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 type Nav = NativeStackNavigationProp<HostStackParamList>;
 
-export default function HostRoundScreen(): React.ReactElement {
-  const navigation             = useNavigation<Nav>();
-  const { state }              = useGameContext();
-  const [showMenu, setShowMenu] = useState(false);
-  const { revealAnswers, advanceRound, endGame, kickPlayer } = useHostControls();
+type SectionProps = {
+  title:        string;
+  players:      Player[];
+  defaultOpen?: boolean;
+  onKick:       (id: string) => void;
+  showScore?:   boolean;
+};
 
-  const game         = state.gameState;
-  const players      = game?.players ?? [];
-  const currentRound = game?.currentRound ?? 1;
-  const totalRounds  = game?.totalRounds ?? 1;
-  const roundPhase   = game?.roundPhase ?? RoundPhase.Answering;
-  const answeredIds  = new Set(game?.answeredPlayerIds ?? []);
-  const roomCode     = game?.roomCode ?? '';
-  const isLastRound  = currentRound === totalRounds;
+function CollapsibleSection({ title, players, defaultOpen = true, onKick, showScore }: SectionProps): React.ReactElement {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <View>
+      <Pressable onPress={() => setOpen((v) => !v)} style={styles.sectionHeader} accessibilityRole="button">
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textSecondary} />
+      </Pressable>
+
+      {open && players.map((p, i) => (
+        <PlayerRow key={p.id} player={p} index={i} showScore={showScore} onKick={onKick} />
+      ))}
+    </View>
+  );
+}
+
+type JoinRowProps = { request: JoinRequest; onAdmit: (id: string) => void; onDeny: (id: string) => void };
+
+function PendingJoinRow({ request, onAdmit, onDeny }: JoinRowProps): React.ReactElement {
+  return (
+    <View style={styles.joinRow}>
+      <Text style={styles.joinName} numberOfLines={1}>{request.name}</Text>
+      <View style={styles.joinActions}>
+        <Pressable onPress={() => onAdmit(request.playerId)} style={styles.admitBtn} accessibilityRole="button">
+          <Text style={styles.admitText}>Admit</Text>
+        </Pressable>
+        <Pressable onPress={() => onDeny(request.playerId)} style={styles.denyBtn} accessibilityRole="button">
+          <Text style={styles.denyText}>Deny</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export default function HostRoundScreen(): React.ReactElement {
+  const navigation              = useNavigation<Nav>();
+  const { state }               = useGameContext();
+  const [showMenu, setShowMenu]     = useState(false);
+  const [kickTarget, setKickTarget] = useState<{ id: string; name: string } | null>(null);
+  const { revealAnswers, advanceRound, endGame, kickPlayer, admitPlayer, denyPlayer } = useHostControls();
+
+  const game            = state.gameState;
+  const players         = game?.players ?? [];
+  const pendingRequests = state.pendingRequests;
+  const currentRound    = game?.currentRound ?? 1;
+  const totalRounds     = game?.totalRounds ?? 1;
+  const roundPhase      = game?.roundPhase ?? RoundPhase.Answering;
+  const answeredIds     = new Set(game?.answeredPlayerIds ?? []);
+  const roomCode        = game?.roomCode ?? '';
+  const isLastRound     = currentRound === totalRounds;
+  const isAnswering     = roundPhase === RoundPhase.Answering;
+
+  const sorted  = [...players].sort((a, b) => b.score - a.score);
+  const waiting = sorted.filter((p) => !answeredIds.has(p.id));
+  const answered = sorted.filter((p) =>  answeredIds.has(p.id));
 
   useEffect(() => {
     if (state.gameResults) {
+      void clearHostSession();
       navigation.navigate('HostResults', { results: state.gameResults });
     }
   }, [state.gameResults, navigation]);
 
+  function handleKickRequest(playerId: string): void {
+    const player = players.find((p) => p.id === playerId);
+    if (player) setKickTarget({ id: player.id, name: player.name });
+  }
+
   return (
     <ScreenContainer noPadding>
-      <Banner title="Round" onHostMenuPress={() => setShowMenu(true)} />
+      <Banner title={`Round ${currentRound} of ${totalRounds}`} onHostMenuPress={() => setShowMenu(true)} />
 
-      <View style={styles.inner}>
-        <RoundBadge current={currentRound} total={totalRounds} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+      >
+        {pendingRequests.length > 0 && (
+          <View style={styles.pendingSection}>
+            <Text style={styles.sectionTitle}>Waiting to Join ({pendingRequests.length})</Text>
+            {pendingRequests.map((req) => (
+              <PendingJoinRow key={req.playerId} request={req} onAdmit={admitPlayer} onDeny={denyPlayer} />
+            ))}
+          </View>
+        )}
 
-        <Text style={styles.statusLabel}>
-          {roundPhase === RoundPhase.Answering
-            ? `${answeredIds.size} of ${players.length} answered`
-            : roundPhase === RoundPhase.AllAnswered
-            ? 'All players have answered'
-            : 'Answers revealed'}
-        </Text>
-
-        <PlayerStatusList players={players} answeredIds={answeredIds} />
+        {isAnswering ? (
+          <>
+            <CollapsibleSection
+              title="Not answered"
+              players={waiting}
+              defaultOpen
+              onKick={handleKickRequest}
+              showScore
+            />
+            <CollapsibleSection
+              title="Answered"
+              players={answered}
+              defaultOpen={false}
+              onKick={handleKickRequest}
+              showScore
+            />
+          </>
+        ) : (
+          <PlayerStatusList
+            players={sorted}
+            showScore
+            onKick={handleKickRequest}
+          />
+        )}
 
         <View style={styles.actions}>
           {roundPhase === RoundPhase.AllAnswered && (
@@ -68,24 +154,98 @@ export default function HostRoundScreen(): React.ReactElement {
             />
           )}
         </View>
-      </View>
+      </ScrollView>
 
       <GamePausedOverlay visible={state.isPaused} />
 
       <HostDropdown
         visible={showMenu}
         roomCode={roomCode}
-        players={players}
         onClose={() => setShowMenu(false)}
-        onKick={kickPlayer}
         onEndGame={endGame}
+      />
+
+      <ConfirmDialog
+        visible={kickTarget !== null}
+        title="Remove Player"
+        message={`Remove ${kickTarget?.name ?? 'this player'} from the game?`}
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => { if (kickTarget) kickPlayer(kickTarget.id); setKickTarget(null); }}
+        onCancel={() => setKickTarget(null)}
       />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  inner:       { flex: 1, padding: Spacing.md, gap: Spacing.lg },
-  statusLabel: { color: Colors.textSecondary, fontSize: FontSize.md, textAlign: 'center' },
-  actions:     { marginTop: 'auto' as unknown as number, gap: Spacing.sm },
+  scroll: { flex: 1 },
+  inner:  { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.xl },
+
+  pendingSection: {
+    gap:           Spacing.xs,
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.border,
+    marginBottom:  Spacing.xs,
+  },
+
+  sectionHeader: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             Spacing.xs,
+    paddingVertical: Spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily:  FontFamily.body,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.bold,
+    color:       Colors.textSecondary,
+    paddingVertical: Spacing.xs,
+  },
+
+  joinRow: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    paddingVertical: Spacing.xs,
+    gap:            Spacing.sm,
+  },
+  joinName: {
+    flex:        1,
+    fontFamily:  FontFamily.body,
+    color:       Colors.textPrimary,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.bold,
+  },
+  joinActions: {
+    flexDirection: 'row',
+    gap:           Spacing.sm,
+  },
+  admitBtn: {
+    backgroundColor:   Colors.primary,
+    borderRadius:      BorderRadius.sm,
+    paddingVertical:   Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  admitText: {
+    color:      Colors.textPrimary,
+    fontSize:   FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  denyBtn: {
+    backgroundColor:   Colors.surfaceElevated,
+    borderRadius:      BorderRadius.sm,
+    paddingVertical:   Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderWidth:       1.5,
+    borderColor:       Colors.border,
+  },
+  denyText: {
+    color:      Colors.textSecondary,
+    fontSize:   FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+
+  actions: { gap: Spacing.sm, marginTop: Spacing.sm },
 });

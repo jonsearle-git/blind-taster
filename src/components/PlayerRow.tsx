@@ -1,10 +1,10 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Modal, Pressable, useWindowDimensions } from 'react-native';
+import { useState, useRef } from 'react';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 import { PlayerStatus } from '../constants/gameConstants';
 import { Player } from '../types/player';
-import { IconButton } from './IconButton';
 
 // Cycle through palette colors for player avatars
 const AVATAR_COLORS = [
@@ -17,84 +17,111 @@ const AVATAR_COLORS = [
 ] as const;
 
 type Props = {
-  player: Player;
+  player:     Player;
   showScore?: boolean;
-  answered?: boolean;
-  onKick?: (playerId: string) => void;
-  index?: number;
+  answered?:  boolean;
+  onKick?:    (playerId: string) => void;
+  index?:     number;
 };
 
 export function PlayerRow({ player, showScore, answered, onKick, index = 0 }: Props): React.ReactElement {
-  const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
-  const isLight = avatarColor === Colors.sun || avatarColor === Colors.mint;
-  const avatarTextColor = isLight ? Colors.ink : Colors.cream;
+  const [menuOpen, setMenuOpen]   = useState(false);
+  const [menuPos, setMenuPos]     = useState({ top: 0, right: 0 });
+  const menuBtnRef                = useRef<View>(null);
+  const { width: screenWidth }    = useWindowDimensions();
 
-  const isConnected = player.status === PlayerStatus.Connected;
-  const statusLabel = isConnected ? 'Ready' : 'Away';
+  const avatarColor     = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const isLight         = avatarColor === Colors.sun || avatarColor === Colors.mint;
+  const avatarTextColor = isLight ? Colors.ink : Colors.cream;
+  const isConnected     = player.status === PlayerStatus.Connected;
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-        <Text style={[styles.avatarText, { color: avatarTextColor }]}>
-          {player.name.charAt(0).toUpperCase()}
-        </Text>
+    <>
+      <View style={styles.row}>
+        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+          <Text style={[styles.avatarText, { color: avatarTextColor }]}>
+            {player.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+
+        <Text style={styles.name} numberOfLines={1}>{player.name}</Text>
+
+        {answered === true && (
+          <View style={[styles.statusChip, styles.statusReady]}>
+            <Text style={[styles.statusLabel, styles.statusReadyLabel]}>Done</Text>
+          </View>
+        )}
+
+        {answered === undefined && (
+          <View style={[styles.statusChip, isConnected ? styles.statusReady : styles.statusAway]}>
+            <Text style={[styles.statusLabel, styles.statusReadyLabel]}>
+              {isConnected ? 'Ready' : 'Away'}
+            </Text>
+          </View>
+        )}
+
+        {showScore === true && (
+          <Text style={styles.score}>{player.score} pts</Text>
+        )}
+
+        {onKick !== undefined && (
+          <Pressable
+            ref={menuBtnRef}
+            onPress={() => {
+              menuBtnRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+                setMenuPos({ top: pageY + height + 4, right: screenWidth - pageX - width });
+                setMenuOpen(true);
+              });
+            }}
+            hitSlop={8}
+            style={styles.menuBtn}
+            accessibilityRole="button"
+            accessibilityLabel={`Options for ${player.name}`}
+          >
+            <Text style={styles.menuIcon}>⋮</Text>
+          </Pressable>
+        )}
       </View>
 
-      <Text style={styles.name} numberOfLines={1}>{player.name}</Text>
-
-      {answered !== undefined && (
-        <View style={[styles.statusChip, answered ? styles.statusReady : styles.statusWaiting]}>
-          <Text style={[styles.statusLabel, answered ? styles.statusReadyLabel : styles.statusWaitingLabel]}>
-            {answered ? 'Done' : '…'}
-          </Text>
-        </View>
-      )}
-
-      {answered === undefined && (
-        <View style={[styles.statusChip, isConnected ? styles.statusReady : styles.statusWaiting]}>
-          <Text style={[styles.statusLabel, isConnected ? styles.statusReadyLabel : styles.statusWaitingLabel]}>
-            {statusLabel}
-          </Text>
-        </View>
-      )}
-
-      {showScore === true && (
-        <Text style={styles.score}>{player.score} pts</Text>
-      )}
-
       {onKick !== undefined && (
-        <IconButton
-          icon="✕"
-          onPress={() => onKick(player.id)}
-          color={Colors.error}
-          size={FontSize.sm}
-          accessibilityLabel={`Kick ${player.name}`}
-        />
+        <Modal visible={menuOpen} transparent animationType="none" onRequestClose={() => setMenuOpen(false)}>
+          <Pressable style={styles.dropdownBackdrop} onPress={() => setMenuOpen(false)}>
+            <View style={[styles.dropdown, { top: menuPos.top, right: menuPos.right }]}>
+              <Pressable
+                onPress={() => { setMenuOpen(false); onKick(player.id); }}
+                style={styles.dropdownItem}
+                accessibilityRole="button"
+              >
+                <Text style={styles.dropdownKick}>Remove player</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
       )}
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    paddingVertical: Spacing.sm,
+    flexDirection:     'row',
+    alignItems:        'center',
+    paddingVertical:   Spacing.sm,
     paddingHorizontal: Spacing.sm,
-    gap:             Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius:    BorderRadius.lg,
-    borderWidth:     2,
-    borderColor:     Colors.border,
+    gap:               Spacing.sm,
+    backgroundColor:   Colors.surface,
+    borderRadius:      BorderRadius.lg,
+    borderWidth:       2,
+    borderColor:       Colors.border,
   },
   avatar: {
-    width:           40,
-    height:          40,
-    borderRadius:    20,
-    borderWidth:     2,
-    borderColor:     Colors.ink,
-    alignItems:      'center',
-    justifyContent:  'center',
+    width:          40,
+    height:         40,
+    borderRadius:   20,
+    borderWidth:    2,
+    borderColor:    Colors.ink,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   avatarText: {
     fontSize:   FontSize.lg,
@@ -107,36 +134,69 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
   statusChip: {
-    borderRadius:    BorderRadius.pill,
+    borderRadius:      BorderRadius.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical:  3,
-    borderWidth:      2,
-    borderColor:      Colors.ink,
+    paddingVertical:   3,
+    borderWidth:       2,
+    borderColor:       Colors.ink,
   },
-  statusReady: {
-    backgroundColor: Colors.mint,
-  },
-  statusWaiting: {
-    backgroundColor: Colors.transparent,
-    opacity:          0.55,
-  },
+  statusReady: { backgroundColor: Colors.mint },
+  statusAway:  { backgroundColor: Colors.transparent, opacity: 0.5 },
   statusLabel: {
-    fontSize:    FontSize.xs,
-    fontWeight:  FontWeight.black,
+    fontFamily:    FontFamily.bodyBold,
+    fontSize:      FontSize.xs,
+    fontWeight:    FontWeight.black,
     letterSpacing: 1,
     textTransform: 'uppercase',
+    color:         Colors.ink,
   },
-  statusReadyLabel: {
-    color: Colors.ink,
-  },
-  statusWaitingLabel: {
-    color: Colors.ink,
-  },
+  statusReadyLabel: { color: Colors.ink },
   score: {
+    fontFamily: FontFamily.bodyBold,
     color:      Colors.ink,
     fontSize:   FontSize.sm,
     fontWeight: FontWeight.black,
     minWidth:   56,
     textAlign:  'right',
+  },
+  menuBtn: {
+    paddingHorizontal: Spacing.xs,
+    alignItems:        'center',
+    justifyContent:    'center',
+    minWidth:          32,
+    minHeight:         32,
+  },
+  menuIcon: {
+    fontSize:   FontSize.xl,
+    color:      Colors.textSecondary,
+    lineHeight: FontSize.xl,
+  },
+
+  dropdownBackdrop: {
+    flex: 1,
+  },
+  dropdown: {
+    position:        'absolute',
+    backgroundColor: Colors.surface,
+    borderRadius:    BorderRadius.sm,
+    borderWidth:     1.5,
+    borderColor:     Colors.ink,
+    shadowColor:     Colors.ink,
+    shadowOffset:    { width: 0, height: 3 },
+    shadowOpacity:   0.15,
+    shadowRadius:    6,
+    elevation:       8,
+    minWidth:        120,
+    overflow:        'hidden',
+  },
+  dropdownItem: {
+    paddingVertical:   Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  dropdownKick: {
+    fontFamily:  FontFamily.bodyBold,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.bold,
+    color:       Colors.error,
   },
 });
