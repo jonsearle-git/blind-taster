@@ -2,7 +2,7 @@ import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-nativ
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '../../components/Button';
 import { useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
@@ -35,6 +35,7 @@ export default function PlayerLobbyScreen(): React.ReactElement {
   const questionnaire = state.gameState?.questionnaire;
 
   useEffect(() => {
+    if (!state.localPlayerId) return;
     const phase = state.gameState?.phase;
     if (
       phase === GamePhase.InRound ||
@@ -43,7 +44,7 @@ export default function PlayerLobbyScreen(): React.ReactElement {
     ) {
       navigation.navigate('PlayerRound');
     }
-  }, [state.gameState?.phase, navigation]);
+  }, [state.localPlayerId, state.gameState?.phase, navigation]);
 
   return (
     <SafeAreaView style={styles.safe}>

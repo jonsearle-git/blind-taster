@@ -4,7 +4,6 @@ import { Colors } from '../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 import { QRCodeDisplay } from './QRCodeDisplay';
-import { ConfirmDialog } from './ConfirmDialog';
 
 type Props = {
   visible:          boolean;
@@ -15,14 +14,7 @@ type Props = {
 };
 
 export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPlayers }: Props): React.ReactElement {
-  const [showEndConfirm, setShowEndConfirm]   = useState(false);
-  const [showRoomCode,   setShowRoomCode]     = useState(false);
-
-  function handleEndGameConfirm(): void {
-    setShowEndConfirm(false);
-    onClose();
-    onEndGame();
-  }
+  const [showRoomCode, setShowRoomCode] = useState(false);
 
   return (
     <>
@@ -44,7 +36,7 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPl
             )}
 
             <Pressable
-              onPress={() => setShowRoomCode(true)}
+              onPress={() => { onClose(); setShowRoomCode(true); }}
               style={styles.item}
               accessibilityRole="button"
             >
@@ -54,7 +46,7 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPl
             <View style={styles.divider} />
 
             <Pressable
-              onPress={() => setShowEndConfirm(true)}
+              onPress={onEndGame}
               style={styles.item}
               accessibilityRole="button"
             >
@@ -64,17 +56,6 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPl
           </View>
         </Pressable>
       </Modal>
-
-      <ConfirmDialog
-        visible={showEndConfirm}
-        title="End Game Early"
-        message="This will end the game immediately and show results with data collected so far."
-        confirmLabel="End Game"
-        cancelLabel="Cancel"
-        destructive
-        onConfirm={handleEndGameConfirm}
-        onCancel={() => setShowEndConfirm(false)}
-      />
 
       <Modal visible={showRoomCode} transparent animationType="fade" onRequestClose={() => setShowRoomCode(false)}>
         <Pressable style={styles.roomCodeBackdrop} onPress={() => setShowRoomCode(false)}>

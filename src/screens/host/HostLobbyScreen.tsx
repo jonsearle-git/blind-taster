@@ -72,6 +72,13 @@ export default function HostLobbyScreen(): React.ReactElement {
   }, [send, sendRef]);
 
   useEffect(() => {
+    dispatch({ type: 'RESET' });
+    // Clear any stale host session unless we're intentionally rejoining with saved params
+    if (!savedRoomCode) void clearHostSession();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // once on mount
+
+  useEffect(() => {
     dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: roomCode });
     return () => { dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: null }); };
   }, [dispatch, roomCode]);

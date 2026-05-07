@@ -48,7 +48,7 @@ export function Button({
   const labelColor  = VARIANT_LABEL[variant];
   const shadowColor = VARIANT_SHADOW[variant];
 
-  const disabledBg = bgColor + '66'; // 40% opacity via hex alpha
+  const disabledBg = bgColor + '66'; // 40% opacity via RRGGBBAA hex
 
   return (
     <View style={[styles.wrapper, style]}>

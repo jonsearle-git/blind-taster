@@ -69,8 +69,9 @@ function PendingJoinRow({ request, onAdmit, onDeny }: JoinRowProps): React.React
 export default function HostRoundScreen(): React.ReactElement {
   const navigation              = useNavigation<Nav>();
   const { state }               = useGameContext();
-  const [showMenu, setShowMenu]     = useState(false);
-  const [kickTarget, setKickTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showMenu, setShowMenu]             = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [kickTarget, setKickTarget]         = useState<{ id: string; name: string } | null>(null);
   const { revealAnswers, advanceRound, endGame, kickPlayer, admitPlayer, denyPlayer, resyncPlayers } = useHostControls();
 
   const game            = state.gameState;
@@ -171,8 +172,19 @@ export default function HostRoundScreen(): React.ReactElement {
         visible={showMenu}
         roomCode={roomCode}
         onClose={() => setShowMenu(false)}
-        onEndGame={endGame}
+        onEndGame={() => { setShowMenu(false); setShowEndConfirm(true); }}
         onResyncPlayers={resyncPlayers}
+      />
+
+      <ConfirmDialog
+        visible={showEndConfirm}
+        title="End Game Early"
+        message="This will end the game immediately and show results with data collected so far."
+        confirmLabel="End Game"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => { setShowEndConfirm(false); endGame(); }}
+        onCancel={() => setShowEndConfirm(false)}
       />
 
       <ConfirmDialog

@@ -41,7 +41,8 @@ async function verifyRoomSig(roomCode: string, sigHex: string, keyHex: string): 
 }
 
 export class BlindTasterServer extends Party.Server<Env> {
-  private hostToken: string | null = null; // C1: set on first host connect, verified on reconnect
+  private hostToken:        string | null = null; // C1: set on first host connect, verified on reconnect
+  private hostConnectionId: string | null = null; // tracks active host conn to avoid stale-close false pauses
 
   private s: ServerState = {
     phase:        GamePhase.Lobby,
@@ -86,7 +87,15 @@ export class BlindTasterServer extends Party.Server<Env> {
     } else if (token !== this.hostToken) {
       conn.close(1008, 'invalid token'); return;
     }
+    // Close any existing host connection — clear hostConnectionId first so onClose
+    // doesn't treat this as a genuine disconnect and broadcast game_paused.
+    const existingHost = this.findHost();
+    if (existingHost) {
+      this.hostConnectionId = null;
+      existingHost.close(1000, 'replaced by new host connection');
+    }
     conn.setState({ role: 'host' } satisfies ConnState);
+    this.hostConnectionId = conn.id;
     this.send(conn, { type: 'game_state', payload: buildGameState(this.s, this.name) });
     if (this.s.phase === GamePhase.GameOver) {
       this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
@@ -132,7 +141,8 @@ export class BlindTasterServer extends Party.Server<Env> {
 
   onClose(conn: Party.Connection, _code: number, _reason: string, _wasClean: boolean): void {
     const cs = conn.state as ConnState | null;
-    if (cs?.role === 'host' && this.s.phase !== GamePhase.Lobby) {
+    if (cs?.role === 'host' && conn.id === this.hostConnectionId && this.s.phase !== GamePhase.Lobby) {
+      this.hostConnectionId = null;
       this.broadcastToPlayers({ type: 'game_paused', payload: { reason: PauseReason.HostDisconnected } });
       // End game automatically if host doesn't reconnect within 5 minutes
       void this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);

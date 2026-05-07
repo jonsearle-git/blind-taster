@@ -10,6 +10,7 @@ import { Spacing, BorderRadius } from '../../constants/spacing';
 import { GamePhase } from '../../constants/gameConstants';
 import { PlayerStackParamList } from '../../types/navigation';
 import { useGameContext } from '../../context/GameContext';
+import { clearHostSession } from '../../lib/hostSession';
 import { usePartySocket } from '../../hooks/usePartySocket';
 import { useGameState } from '../../hooks/useGameState';
 import { usePlayerActions } from '../../hooks/usePlayerActions';
@@ -111,13 +112,19 @@ export default function JoinGameScreen(): React.ReactElement {
   }, [state.localPlayerId, sendRef]);
 
   useEffect(() => {
-    if (state.localPlayerId) navigation.navigate('PlayerLobby');
+    if (state.localPlayerId) {
+      navigation.navigate('PlayerLobby');
+    } else {
+      // RESET was dispatched (e.g. device switched to host) — close the socket
+      setConnectedRoomCode('');
+    }
   }, [state.localPlayerId, navigation]);
 
   const trimmedCode = roomCodeInput.trim();
   const trimmedName = name.trim();
 
   function doJoin(): void {
+    void clearHostSession();
     dispatch({ type: 'RESET' });
     setIsDenied(false);
     setIsWaiting(true);

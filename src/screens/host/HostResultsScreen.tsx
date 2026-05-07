@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
 import { useState } from 'react';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
@@ -8,6 +8,7 @@ import { Spacing } from '../../constants/spacing';
 import { HostStackParamList, RootStackParamList } from '../../types/navigation';
 import { PlayerResult } from '../../types/results';
 import { useGameContext } from '../../context/GameContext';
+import { clearHostSession } from '../../lib/hostSession';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
@@ -26,6 +27,7 @@ export default function HostResultsScreen(): React.ReactElement {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   function handleDone(): void {
+    void clearHostSession();
     dispatch({ type: 'RESET' });
     navigation.getParent()?.navigate('Home');
   }
