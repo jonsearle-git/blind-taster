@@ -29,6 +29,10 @@ export function useHostControls() {
     send({ type: 'reveal_answers' });
   }, [send]);
 
+  const resyncPlayers = useCallback((): void => {
+    send({ type: 'resync_players' });
+  }, [send]);
+
   const advanceRound = useCallback((): void => {
     dispatch({ type: 'CLEAR_ROUND_RESULTS' });
     send({ type: 'advance_round' });
@@ -43,5 +47,5 @@ export function useHostControls() {
     send({ type: 'kick_player', payload: { playerId } });
   }, [send]);
 
-  return { admitPlayer, denyPlayer, startGame, revealAnswers, advanceRound, endGame, kickPlayer };
+  return { admitPlayer, denyPlayer, startGame, revealAnswers, resyncPlayers, advanceRound, endGame, kickPlayer };
 }

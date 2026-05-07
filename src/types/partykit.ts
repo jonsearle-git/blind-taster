@@ -39,6 +39,7 @@ export type ClientMessage =
   | { type: 'start_game';      payload: { questionnaire: Questionnaire; rounds: Round[] } }
   | { type: 'submit_answers';  payload: PlayerRoundAnswers }
   | { type: 'reveal_answers' }
+  | { type: 'resync_players' }
   | { type: 'advance_round' }
   | { type: 'kick_player';     payload: { playerId: string } }
   | { type: 'end_game' };

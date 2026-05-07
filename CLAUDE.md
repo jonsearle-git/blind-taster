@@ -4,6 +4,12 @@ This file is the authoritative reference for all development decisions on this p
 
 ---
 
+## Response Style
+
+Terse. Fragments OK. No preamble, no trailing summaries, no "I'll now...", no "Done!". State results and changes directly. One sentence per update max.
+
+---
+
 ## Platform Target
 
 **This app is released on both Android and iOS. Every fix, feature, and style change must work correctly on both platforms without exception.**

@@ -107,7 +107,7 @@ export class BlindTasterServer extends Party.Server<Env> {
 
     // C2: enforce role-based authorization
     const cs = sender.state as ConnState | null;
-    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','advance_round','kick_player','end_game']);
+    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','kick_player','end_game']);
     const PLAYER_ONLY  = new Set(['submit_answers', 'sync_state']);
     const PENDING_ONLY = new Set(['request_join', 'restore_player']);
     if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
@@ -122,7 +122,8 @@ export class BlindTasterServer extends Party.Server<Env> {
       case 'start_game':     return this.handleStartGame(msg.payload.questionnaire, msg.payload.rounds);
       case 'submit_answers': return this.handleSubmitAnswers(sender, msg.payload);
       case 'sync_state':     return this.send(sender, { type: 'game_state', payload: buildGameState(this.s, this.name) });
-      case 'reveal_answers': return this.handleRevealAnswers();
+      case 'reveal_answers':  return this.handleRevealAnswers();
+      case 'resync_players':  return this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
       case 'advance_round':  return this.handleAdvanceRound();
       case 'kick_player':    return this.handleKick(msg.payload.playerId);
       case 'end_game':       return this.handleEndGame();
@@ -239,13 +240,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     if (host) this.send(host, { type: 'player_answered', payload: { playerId } });
     // Broadcast updated game_state so answeredPlayerIds is current for all
     this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
-    const connected = [...this.s.players.values()].filter((p) => p.connectionId !== null);
-    if (connected.length > 0 && connected.every((p) => this.s.roundAnswers.has(p.id))) {
-      this.s.phase      = GamePhase.AllAnswered;
-      this.s.roundPhase = RoundPhase.AllAnswered;
-      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
-      this.broadcastToAdmitted({ type: 'all_players_answered' });
-    }
+    this.checkAllAnswered();
   }
 
   private handleRevealAnswers(): void {
@@ -301,7 +296,18 @@ export class BlindTasterServer extends Party.Server<Env> {
     if (conn) { this.send(conn, { type: 'you_were_kicked' }); conn.close(1000, 'kicked'); }
     this.s.players.delete(playerId);
     this.broadcastToAdmitted({ type: 'player_kicked', payload: { playerId } });
+    this.checkAllAnswered();
     this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
+  }
+
+  private checkAllAnswered(): void {
+    if (this.s.phase !== GamePhase.InRound || this.s.roundPhase !== RoundPhase.Answering) return;
+    const connected = [...this.s.players.values()].filter((p) => p.connectionId !== null);
+    if (connected.length > 0 && connected.every((p) => this.s.roundAnswers.has(p.id))) {
+      this.s.phase      = GamePhase.AllAnswered;
+      this.s.roundPhase = RoundPhase.AllAnswered;
+      this.broadcastToAdmitted({ type: 'all_players_answered' });
+    }
   }
 
   private handleEndGame(): void {

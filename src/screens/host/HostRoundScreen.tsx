@@ -42,7 +42,7 @@ function CollapsibleSection({ title, players, defaultOpen = true, onKick, showSc
       </Pressable>
 
       {open && players.map((p, i) => (
-        <PlayerRow key={p.id} player={p} index={i} showScore={showScore} onKick={onKick} />
+        <PlayerRow key={p.id} player={p} showScore={showScore} onKick={onKick} />
       ))}
     </View>
   );
@@ -71,13 +71,14 @@ export default function HostRoundScreen(): React.ReactElement {
   const { state }               = useGameContext();
   const [showMenu, setShowMenu]     = useState(false);
   const [kickTarget, setKickTarget] = useState<{ id: string; name: string } | null>(null);
-  const { revealAnswers, advanceRound, endGame, kickPlayer, admitPlayer, denyPlayer } = useHostControls();
+  const { revealAnswers, advanceRound, endGame, kickPlayer, admitPlayer, denyPlayer, resyncPlayers } = useHostControls();
 
   const game            = state.gameState;
   const players         = game?.players ?? [];
   const pendingRequests = state.pendingRequests;
   const currentRound    = game?.currentRound ?? 1;
   const totalRounds     = game?.totalRounds ?? 1;
+  const gameName        = game?.questionnaire?.name ?? '';
   const roundPhase      = game?.roundPhase ?? RoundPhase.Answering;
   const answeredIds     = new Set(game?.answeredPlayerIds ?? []);
   const roomCode        = game?.roomCode ?? '';
@@ -102,7 +103,7 @@ export default function HostRoundScreen(): React.ReactElement {
 
   return (
     <ScreenContainer noPadding>
-      <Banner title={`Round ${currentRound} of ${totalRounds}`} onHostMenuPress={() => setShowMenu(true)} />
+      <Banner title={`Round ${currentRound} of ${totalRounds}`} subtitle={gameName || undefined} onHostMenuPress={() => setShowMenu(true)} />
 
       <ScrollView
         style={styles.scroll}
@@ -117,6 +118,13 @@ export default function HostRoundScreen(): React.ReactElement {
             ))}
           </View>
         )}
+
+        <View style={styles.playersHeader}>
+          <Text style={styles.playersHeading}>Players</Text>
+          <Pressable onPress={resyncPlayers} hitSlop={Spacing.sm} accessibilityRole="button" accessibilityLabel="Resync players">
+            <Ionicons name="refresh" size={20} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
 
         {isAnswering ? (
           <>
@@ -142,19 +150,20 @@ export default function HostRoundScreen(): React.ReactElement {
             onKick={handleKickRequest}
           />
         )}
-
-        <View style={styles.actions}>
-          {roundPhase === RoundPhase.AllAnswered && (
-            <Button label="Reveal Answers" onPress={revealAnswers} />
-          )}
-          {roundPhase === RoundPhase.AnswersRevealed && (
-            <Button
-              label={isLastRound ? 'End Game' : 'Next Round'}
-              onPress={isLastRound ? endGame : advanceRound}
-            />
-          )}
-        </View>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Button
+          label="Reveal Answers"
+          onPress={revealAnswers}
+          disabled={roundPhase !== RoundPhase.AllAnswered}
+        />
+        <Button
+          label={isLastRound ? 'End Game' : 'Next Round'}
+          onPress={isLastRound ? endGame : advanceRound}
+          disabled={roundPhase !== RoundPhase.AnswersRevealed}
+        />
+      </View>
 
       <GamePausedOverlay visible={state.isPaused} />
 
@@ -163,6 +172,7 @@ export default function HostRoundScreen(): React.ReactElement {
         roomCode={roomCode}
         onClose={() => setShowMenu(false)}
         onEndGame={endGame}
+        onResyncPlayers={resyncPlayers}
       />
 
       <ConfirmDialog
@@ -181,7 +191,30 @@ export default function HostRoundScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  inner:  { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.xl },
+  inner:  { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.md },
+
+  footer: {
+    gap:               Spacing.sm,
+    padding:           Spacing.md,
+    paddingBottom:     Spacing.lg,
+    borderTopWidth:    1.5,
+    borderTopColor:    Colors.border,
+    backgroundColor:   Colors.background,
+  },
+
+  playersHeader: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+  },
+  playersHeading: {
+    fontFamily:  FontFamily.body,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.bold,
+    color:       Colors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
 
   pendingSection: {
     gap:           Spacing.xs,
@@ -247,5 +280,4 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
 
-  actions: { gap: Spacing.sm, marginTop: Spacing.sm },
 });

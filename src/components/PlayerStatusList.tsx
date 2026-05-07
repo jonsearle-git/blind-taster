@@ -19,7 +19,6 @@ export function PlayerStatusList({ players, answeredIds, onKick, showScore }: Pr
           {index > 0 && <Divider spacing={0} />}
           <PlayerRow
             player={item}
-            index={index}
             answered={answeredIds !== undefined ? answeredIds.has(item.id) : undefined}
             onKick={onKick}
             showScore={showScore}

@@ -48,16 +48,17 @@ export function Button({
   const labelColor  = VARIANT_LABEL[variant];
   const shadowColor = VARIANT_SHADOW[variant];
 
+  const disabledBg = bgColor + '66'; // 40% opacity via hex alpha
+
   return (
     <View style={[styles.wrapper, style]}>
-      {/* Sticker offset shadow */}
-      <View style={[styles.shadow, { backgroundColor: shadowColor }]} />
+      {!isDisabled && <View style={[styles.shadow, { backgroundColor: shadowColor }]} />}
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
         style={({ pressed }) => [
           styles.base,
-          { backgroundColor: bgColor },
+          { backgroundColor: isDisabled ? disabledBg : bgColor },
           isDisabled && styles.disabled,
           pressed && !isDisabled && styles.pressed,
         ]}
@@ -76,7 +77,7 @@ export function Button({
         {loading ? (
           <ActivityIndicator color={labelColor} size="small" />
         ) : (
-          <Text style={[styles.label, { color: labelColor }]}>
+          <Text style={[styles.label, { color: isDisabled ? Colors.textDisabled : labelColor }]}>
             {label}
           </Text>
         )}
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.pill,
   },
   disabled: {
-    opacity: 0.45,
+    borderColor: Colors.textDisabled,
   },
   pressed: {
     transform: [{ translateX: 3 }, { translateY: 3 }],

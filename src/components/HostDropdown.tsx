@@ -7,14 +7,16 @@ import { QRCodeDisplay } from './QRCodeDisplay';
 import { ConfirmDialog } from './ConfirmDialog';
 
 type Props = {
-  visible:    boolean;
-  roomCode:   string;
-  onClose:    () => void;
-  onEndGame:  () => void;
+  visible:          boolean;
+  roomCode:         string;
+  onClose:          () => void;
+  onEndGame:        () => void;
+  onResyncPlayers?: () => void;
 };
 
-export function HostDropdown({ visible, roomCode, onClose, onEndGame }: Props): React.ReactElement {
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
+export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPlayers }: Props): React.ReactElement {
+  const [showEndConfirm, setShowEndConfirm]   = useState(false);
+  const [showRoomCode,   setShowRoomCode]     = useState(false);
 
   function handleEndGameConfirm(): void {
     setShowEndConfirm(false);
@@ -24,39 +26,42 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame }: Props): 
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
         <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.dropdown}>
 
-            <View style={styles.handle} />
+            {onResyncPlayers !== undefined && (
+              <>
+                <Pressable
+                  onPress={() => { onResyncPlayers(); onClose(); }}
+                  style={styles.item}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.itemLabel}>Resync Players</Text>
+                </Pressable>
+                <View style={styles.divider} />
+              </>
+            )}
 
-            <View style={styles.roomCodeSection}>
-              <Text style={styles.sectionLabel}>ROOM CODE</Text>
-              <Text style={styles.roomCode}>{roomCode}</Text>
-            </View>
+            <Pressable
+              onPress={() => setShowRoomCode(true)}
+              style={styles.item}
+              accessibilityRole="button"
+            >
+              <Text style={styles.itemLabel}>Show Room Code</Text>
+            </Pressable>
 
-            <QRCodeDisplay roomCode={roomCode} />
+            <View style={styles.divider} />
 
-            <View style={styles.footer}>
-              <Pressable
-                onPress={() => setShowEndConfirm(true)}
-                style={styles.endBtn}
-                accessibilityLabel="End game early"
-                accessibilityRole="button"
-              >
-                <Text style={styles.endBtnLabel}>End Game Early</Text>
-              </Pressable>
+            <Pressable
+              onPress={() => setShowEndConfirm(true)}
+              style={styles.item}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.itemLabel, styles.destructiveLabel]}>End Game Early</Text>
+            </Pressable>
 
-              <Pressable
-                onPress={onClose}
-                style={styles.cancelBtn}
-                accessibilityRole="button"
-              >
-                <Text style={styles.cancelBtnLabel}>Close</Text>
-              </Pressable>
-            </View>
-
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
 
@@ -70,6 +75,23 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame }: Props): 
         onConfirm={handleEndGameConfirm}
         onCancel={() => setShowEndConfirm(false)}
       />
+
+      <Modal visible={showRoomCode} transparent animationType="fade" onRequestClose={() => setShowRoomCode(false)}>
+        <Pressable style={styles.roomCodeBackdrop} onPress={() => setShowRoomCode(false)}>
+          <Pressable style={styles.roomCodeSheet} onPress={() => {}}>
+            <Text style={styles.roomCodeLabel}>ROOM CODE</Text>
+            <Text style={styles.roomCodeText}>{roomCode}</Text>
+            <QRCodeDisplay roomCode={roomCode} />
+            <Pressable
+              onPress={() => setShowRoomCode(false)}
+              style={styles.closeBtn}
+              accessibilityRole="button"
+            >
+              <Text style={styles.closeBtnLabel}>Close</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }
@@ -78,81 +100,86 @@ const styles = StyleSheet.create({
   backdrop: {
     flex:            1,
     backgroundColor: Colors.overlay,
-    justifyContent:  'flex-end',
   },
-  sheet: {
-    backgroundColor:      Colors.cream,
-    borderTopLeftRadius:  BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    borderTopWidth:       2.5,
-    borderLeftWidth:      2.5,
-    borderRightWidth:     2.5,
-    borderColor:          Colors.ink,
-    paddingBottom:        Spacing.xl,
-    alignItems:           'center',
-    gap:                  Spacing.md,
+  dropdown: {
+    position:        'absolute',
+    top:             52,
+    right:           Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius:    BorderRadius.md,
+    borderWidth:     2,
+    borderColor:     Colors.border,
+    minWidth:        180,
+    shadowColor:     Colors.ink,
+    shadowOffset:    { width: 0, height: 4 },
+    shadowOpacity:   0.25,
+    shadowRadius:    8,
+    elevation:       12,
+    overflow:        'hidden',
   },
-  handle: {
-    width:           48,
-    height:          4,
-    borderRadius:    2,
-    backgroundColor: Colors.ink,
-    opacity:         0.2,
-    marginTop:       Spacing.sm,
+  item: {
+    paddingVertical:   Spacing.md,
+    paddingHorizontal: Spacing.md,
   },
-  roomCodeSection: {
-    alignItems: 'center',
-    gap:        Spacing.xs,
-    paddingTop: Spacing.sm,
+  itemLabel: {
+    fontFamily:  FontFamily.body,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.bold,
+    color:       Colors.textPrimary,
   },
-  sectionLabel: {
+  destructiveLabel: {
+    color: Colors.error,
+  },
+  divider: {
+    height:          1.5,
+    backgroundColor: Colors.border,
+  },
+
+  roomCodeBackdrop: {
+    flex:            1,
+    backgroundColor: Colors.overlay,
+    alignItems:      'center',
+    justifyContent:  'center',
+    padding:         Spacing.lg,
+  },
+  roomCodeSheet: {
+    backgroundColor: Colors.surface,
+    borderRadius:    BorderRadius.xl,
+    borderWidth:     2.5,
+    borderColor:     Colors.border,
+    padding:         Spacing.lg,
+    alignItems:      'center',
+    gap:             Spacing.md,
+    width:           '100%',
+  },
+  roomCodeLabel: {
     fontFamily:    FontFamily.bodyBold,
     fontSize:      FontSize.xs,
     fontWeight:    FontWeight.black,
-    color:         Colors.ink,
+    color:         Colors.textSecondary,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    opacity:       0.6,
   },
-  roomCode: {
+  roomCodeText: {
     fontFamily:    FontFamily.display,
-    fontSize:      FontSize.jumbo,
+    fontSize:      FontSize.xxl,
     fontWeight:    FontWeight.black,
-    color:         Colors.ink,
+    color:         Colors.textPrimary,
     letterSpacing: 4,
   },
-  footer: {
-    width:         '100%',
+  closeBtn: {
+    backgroundColor:   Colors.surfaceElevated,
+    borderRadius:      BorderRadius.pill,
+    paddingVertical:   Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    gap:           Spacing.sm,
-    marginTop:     Spacing.sm,
+    borderWidth:       2,
+    borderColor:       Colors.border,
+    marginTop:         Spacing.xs,
   },
-  endBtn: {
-    backgroundColor: Colors.error,
-    borderRadius:    BorderRadius.pill,
-    paddingVertical: Spacing.md,
-    alignItems:      'center',
-    borderWidth:     2.5,
-    borderColor:     Colors.ink,
-  },
-  endBtnLabel: {
+  closeBtnLabel: {
     fontFamily:  FontFamily.heading,
-    color:       Colors.cream,
     fontSize:    FontSize.md,
     fontWeight:  FontWeight.black,
-  },
-  cancelBtn: {
-    backgroundColor: Colors.surface,
-    borderRadius:    BorderRadius.pill,
-    paddingVertical: Spacing.md,
-    alignItems:      'center',
-    borderWidth:     2.5,
-    borderColor:     Colors.ink,
-  },
-  cancelBtnLabel: {
-    fontFamily:  FontFamily.heading,
-    color:       Colors.ink,
-    fontSize:    FontSize.md,
-    fontWeight:  FontWeight.black,
+    color:       Colors.textPrimary,
   },
 });

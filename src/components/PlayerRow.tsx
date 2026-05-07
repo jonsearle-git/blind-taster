@@ -21,16 +21,21 @@ type Props = {
   showScore?: boolean;
   answered?:  boolean;
   onKick?:    (playerId: string) => void;
-  index?:     number;
 };
 
-export function PlayerRow({ player, showScore, answered, onKick, index = 0 }: Props): React.ReactElement {
+function stableIndex(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+export function PlayerRow({ player, showScore, answered, onKick }: Props): React.ReactElement {
   const [menuOpen, setMenuOpen]   = useState(false);
   const [menuPos, setMenuPos]     = useState({ top: 0, right: 0 });
   const menuBtnRef                = useRef<View>(null);
   const { width: screenWidth }    = useWindowDimensions();
 
-  const avatarColor     = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const avatarColor     = AVATAR_COLORS[stableIndex(player.id) % AVATAR_COLORS.length];
   const isLight         = avatarColor === Colors.sun || avatarColor === Colors.mint;
   const avatarTextColor = isLight ? Colors.ink : Colors.cream;
   const isConnected     = player.status === PlayerStatus.Connected;
@@ -47,16 +52,14 @@ export function PlayerRow({ player, showScore, answered, onKick, index = 0 }: Pr
         <Text style={styles.name} numberOfLines={1}>{player.name}</Text>
 
         {answered === true && (
-          <View style={[styles.statusChip, styles.statusReady]}>
-            <Text style={[styles.statusLabel, styles.statusReadyLabel]}>Done</Text>
+          <View style={[styles.statusChip, styles.statusDone]}>
+            <Text style={styles.statusLabel}>Done</Text>
           </View>
         )}
 
-        {answered === undefined && (
-          <View style={[styles.statusChip, isConnected ? styles.statusReady : styles.statusAway]}>
-            <Text style={[styles.statusLabel, styles.statusReadyLabel]}>
-              {isConnected ? 'Ready' : 'Away'}
-            </Text>
+        {answered === undefined && !isConnected && (
+          <View style={[styles.statusChip, styles.statusAway]}>
+            <Text style={styles.statusLabel}>Away</Text>
           </View>
         )}
 
@@ -140,8 +143,8 @@ const styles = StyleSheet.create({
     borderWidth:       2,
     borderColor:       Colors.ink,
   },
-  statusReady: { backgroundColor: Colors.mint },
-  statusAway:  { backgroundColor: Colors.transparent, opacity: 0.5 },
+  statusDone: { backgroundColor: Colors.mint },
+  statusAway: { backgroundColor: Colors.transparent, opacity: 0.5 },
   statusLabel: {
     fontFamily:    FontFamily.bodyBold,
     fontSize:      FontSize.xs,
@@ -150,7 +153,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color:         Colors.ink,
   },
-  statusReadyLabel: { color: Colors.ink },
   score: {
     fontFamily: FontFamily.bodyBold,
     color:      Colors.ink,

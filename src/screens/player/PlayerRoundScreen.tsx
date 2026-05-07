@@ -30,6 +30,7 @@ export default function PlayerRoundScreen(): React.ReactElement {
   const questions    = game?.questionnaire?.questions ?? [];
   const currentRound = game?.currentRound ?? 1;
   const totalRounds  = game?.totalRounds ?? 1;
+  const gameName     = game?.questionnaire?.name ?? '';
   const roundPhase   = game?.roundPhase ?? RoundPhase.Answering;
   const localPlayer  = game?.players.find((p) => p.id === state.localPlayerId);
   const score        = localPlayer?.score ?? 0;
@@ -57,7 +58,7 @@ export default function PlayerRoundScreen(): React.ReactElement {
 
   return (
     <ScreenContainer noPadding>
-      <Banner title={`Round ${currentRound} of ${totalRounds}`} score={score} />
+      <Banner title={`Round ${currentRound} of ${totalRounds}`} subtitle={gameName || undefined} score={score} />
 
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
 
@@ -92,16 +93,17 @@ export default function PlayerRoundScreen(): React.ReactElement {
             ))}
           </View>
         )}
+      </ScrollView>
 
-        {!submitted && !isRevealed && (
+      {!submitted && !isRevealed && (
+        <View style={styles.footer}>
           <Button
             label="Submit Answers"
             onPress={handleSubmit}
             disabled={!isComplete}
-            style={styles.submitButton}
           />
-        )}
-      </ScrollView>
+        </View>
+      )}
 
       <KickedOverlay visible={state.isKicked} />
       <GamePausedOverlay visible={state.isPaused} />
@@ -119,5 +121,11 @@ const styles = StyleSheet.create({
   waitingSection: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingVertical: Spacing.xxl },
   waitingText:    { color: Colors.textSecondary, fontSize: FontSize.md },
   resultsList:    { gap: Spacing.md },
-  submitButton:   { marginTop: Spacing.md },
+  footer: {
+    padding:           Spacing.md,
+    paddingBottom:     Spacing.lg,
+    borderTopWidth:    1.5,
+    borderTopColor:    Colors.border,
+    backgroundColor:   Colors.background,
+  },
 });

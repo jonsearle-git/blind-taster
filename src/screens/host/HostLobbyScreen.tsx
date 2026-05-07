@@ -154,7 +154,7 @@ export default function HostLobbyScreen(): React.ReactElement {
           ) : (
             <View style={styles.cardList}>
               {admittedPlayers.map((item, index) => (
-                <PlayerRow key={item.id} player={item} index={index} />
+                <PlayerRow key={item.id} player={item} />
               ))}
             </View>
           )}

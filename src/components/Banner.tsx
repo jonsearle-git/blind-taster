@@ -4,15 +4,21 @@ import { FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 
 type Props = {
-  title: string;
-  score?: number;
+  title:            string;
+  subtitle?:        string;
+  score?:           number;
   onHostMenuPress?: () => void;
 };
 
-export function Banner({ title, score, onHostMenuPress }: Props): React.ReactElement {
+export function Banner({ title, subtitle, score, onHostMenuPress }: Props): React.ReactElement {
   return (
     <View style={styles.container}>
-      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <View style={styles.titleBlock}>
+        {subtitle !== undefined && (
+          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+        )}
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      </View>
 
       <View style={styles.right}>
         {score !== undefined && (
@@ -47,8 +53,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2.5,
     borderBottomColor: Colors.border,
   },
+  titleBlock: {
+    flex: 1,
+  },
+  subtitle: {
+    color:       Colors.textSecondary,
+    fontSize:    FontSize.xs,
+    fontWeight:  FontWeight.bold,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   title: {
-    flex:        1,
     color:       Colors.textPrimary,
     fontSize:    FontSize.lg,
     fontWeight:  FontWeight.black,

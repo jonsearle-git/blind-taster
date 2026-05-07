@@ -82,8 +82,8 @@ export default function PlayerLobbyScreen(): React.ReactElement {
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
             contentContainerStyle={styles.playerList}
-            renderItem={({ item, index }) => (
-              <PlayerRow player={item} index={index} />
+            renderItem={({ item }) => (
+              <PlayerRow player={item} />
             )}
             ListEmptyComponent={
               <Text style={styles.emptyText}>No other players yet.</Text>
