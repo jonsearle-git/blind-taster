@@ -141,11 +141,16 @@ export class BlindTasterServer extends Party.Server<Env> {
 
   onClose(conn: Party.Connection, _code: number, _reason: string, _wasClean: boolean): void {
     const cs = conn.state as ConnState | null;
-    if (cs?.role === 'host' && conn.id === this.hostConnectionId && this.s.phase !== GamePhase.Lobby) {
+    if (cs?.role === 'host' && conn.id === this.hostConnectionId) {
       this.hostConnectionId = null;
-      this.broadcastToPlayers({ type: 'game_paused', payload: { reason: PauseReason.HostDisconnected } });
-      // End game automatically if host doesn't reconnect within 5 minutes
-      void this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
+      if (this.s.phase === GamePhase.Lobby) {
+        // Host left before game started — end immediately, no reconnect window
+        this.handleEndGame();
+      } else if (this.s.phase !== GamePhase.GameOver) {
+        this.broadcastToPlayers({ type: 'game_paused', payload: { reason: PauseReason.HostDisconnected } });
+        // End game automatically if host doesn't reconnect within 5 minutes
+        void this.ctx.storage.setAlarm(Date.now() + 5 * 60 * 1000);
+      }
     } else if (cs?.role === 'player' && cs.playerId) {
       const player = this.s.players.get(cs.playerId);
       // Only clear connectionId if this closing connection is still the active one.

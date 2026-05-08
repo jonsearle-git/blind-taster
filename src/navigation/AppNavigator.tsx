@@ -18,10 +18,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Host:   'host',
       Player: {
         screens: {
-          JoinGame:      'join/:roomCode',
-          PlayerLobby:   'lobby',
-          PlayerRound:   'round',
-          PlayerResults: 'results',
+          PlayerGame: 'join/:roomCode',
         },
       },
     },

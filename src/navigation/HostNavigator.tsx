@@ -8,9 +8,7 @@ import GamesScreen from '../screens/host/GamesScreen';
 import QuestionnaireBuilderScreen from '../screens/host/QuestionnaireBuilderScreen';
 import QuestionEditorScreen from '../screens/host/QuestionEditorScreen';
 import RoundsBuilderScreen from '../screens/host/RoundsBuilderScreen';
-import HostLobbyScreen from '../screens/host/HostLobbyScreen';
-import HostRoundScreen from '../screens/host/HostRoundScreen';
-import HostResultsScreen from '../screens/host/HostResultsScreen';
+import HostGameScreen from '../screens/host/HostGameScreen';
 
 const Stack = createNativeStackNavigator<HostStackParamList>();
 
@@ -32,10 +30,7 @@ export function HostNavigator(): React.ReactElement {
       <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} options={{ title: 'Questionnaire' }} />
       <Stack.Screen name="QuestionEditor"       component={QuestionEditorScreen}       options={{ title: 'New Question' }} />
       <Stack.Screen name="RoundsBuilder"        component={RoundsBuilderScreen}        options={{ title: 'Set Up Rounds' }} />
-      <Stack.Screen name="HostLobby"            component={HostLobbyScreen}            options={{ title: 'Start Game', gestureEnabled: false }} />
-      {/* detachPreviousScreen keeps HostLobbyScreen mounted (and its socket alive) while in-game */}
-      <Stack.Screen name="HostInGame"           component={HostRoundScreen}            options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
-      <Stack.Screen name="HostResults"          component={HostResultsScreen}          options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
+      <Stack.Screen name="HostGame" component={HostGameScreen} options={{ headerShown: false, gestureEnabled: false }} />
     </Stack.Navigator>
   );
 }

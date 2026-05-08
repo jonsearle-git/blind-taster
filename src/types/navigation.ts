@@ -17,15 +17,9 @@ export type HostStackParamList = {
   QuestionnaireBuilder: { questionnaireId?: string };
   QuestionEditor:       { questionType?: QuestionType; question?: Question };
   RoundsBuilder:        { gameId?: string; questionnaireId?: string };
-  HostLobby:            { questionnaireId: string; rounds: Round[]; savedRoomCode?: string; savedHostToken?: string };
-  HostInGame:           undefined;
-  HostResults:          { results: GameResults };
+  HostGame:             { questionnaireId: string; rounds: Round[]; savedRoomCode?: string; savedHostToken?: string };
 };
 
-
 export type PlayerStackParamList = {
-  JoinGame:      { roomCode?: string };
-  PlayerLobby:   undefined;
-  PlayerRound:   undefined;
-  PlayerResults: { results: GameResults };
+  PlayerGame: { roomCode?: string; savedPlayerId?: string; savedName?: string };
 };

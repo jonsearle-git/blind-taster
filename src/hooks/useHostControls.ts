@@ -1,15 +1,10 @@
 import { useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
-import type { ClientMessage } from '../types/partykit';
 import type { Questionnaire } from '../types/questionnaire';
 import type { Round } from '../types/game';
 
 export function useHostControls() {
-  const { dispatch, sendRef } = useGameContext();
-
-  const send = useCallback((msg: ClientMessage): void => {
-    sendRef.current?.(msg);
-  }, [sendRef]);
+  const { dispatch, send } = useGameContext();
 
   const admitPlayer = useCallback((playerId: string): void => {
     dispatch({ type: 'REMOVE_JOIN_REQUEST', payload: playerId });

@@ -1,15 +1,10 @@
 import { StyleSheet, View, Text, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { Colors } from '../constants/colors';
 import { FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
-import { useGameContext } from '../context/GameContext';
 import { Button } from './Button';
-import { RootStackParamList } from '../types/navigation';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
+import { useGameContext } from '../context/GameContext';
 type Props = {
   visible: boolean;
   title?:  string;
@@ -17,12 +12,12 @@ type Props = {
 };
 
 export function KickedOverlay({ visible, title = 'Removed from Game', message = 'You have been removed from this game by the host.' }: Props): React.ReactElement {
-  const navigation = useNavigation<Nav>();
-  const { dispatch } = useGameContext();
+  const navigation     = useNavigation();
+  const { disconnect } = useGameContext();
 
   function handleBackToMenu(): void {
-    dispatch({ type: 'RESET' });
-    navigation.navigate('Home');
+    disconnect();
+    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Home' }] }));
   }
 
   return (

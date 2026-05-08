@@ -8,6 +8,7 @@ export function useGameState() {
   const handleMessage = useCallback((msg: ServerMessage): void => {
     switch (msg.type) {
       case 'game_state':
+        if (__DEV__) console.log('[useGameState] game_state phase:', msg.payload.phase, 'localPlayerId in msg players:', msg.payload.players?.map(p => p.id));
         dispatch({ type: 'SET_GAME_STATE', payload: msg.payload });
         break;
       case 'join_request':

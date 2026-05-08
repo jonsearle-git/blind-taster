@@ -56,16 +56,11 @@ export default function GamesScreen(): React.ReactElement {
   function doHost(game: SavedGame): void {
     dispatch({ type: 'RESET' });
     dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: game.id });
-    navigation.navigate('HostLobby', { questionnaireId: game.questionnaireId, rounds: game.rounds });
+    navigation.navigate('HostGame', { questionnaireId: game.questionnaireId, rounds: game.rounds });
   }
 
   function handleRejoin(game: SavedGame): void {
-    const phase = state.gameState?.phase;
-    if (phase === GamePhase.Lobby) {
-      navigation.navigate('HostLobby', { questionnaireId: game.questionnaireId, rounds: game.rounds });
-    } else {
-      navigation.navigate('HostInGame');
-    }
+    navigation.navigate('HostGame', { questionnaireId: game.questionnaireId, rounds: game.rounds });
   }
 
   function handleHost(game: SavedGame): void {

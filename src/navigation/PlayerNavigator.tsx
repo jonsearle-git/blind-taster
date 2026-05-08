@@ -2,10 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PlayerStackParamList } from '../types/navigation';
 import { Colors } from '../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../constants/typography';
-import JoinGameScreen from '../screens/player/JoinGameScreen';
-import PlayerLobbyScreen from '../screens/player/PlayerLobbyScreen';
-import PlayerRoundScreen from '../screens/player/PlayerRoundScreen';
-import PlayerResultsScreen from '../screens/player/PlayerResultsScreen';
+import PlayerGameScreen from '../screens/player/PlayerGameScreen';
 
 const Stack = createNativeStackNavigator<PlayerStackParamList>();
 
@@ -21,11 +18,7 @@ export function PlayerNavigator(): React.ReactElement {
         headerBackButtonDisplayMode: 'minimal',
       }}
     >
-      <Stack.Screen name="JoinGame"      component={JoinGameScreen}      options={{ title: 'Join Game' }} />
-      {/* detachPreviousScreen keeps JoinGameScreen mounted (and its socket alive) while in-game */}
-      <Stack.Screen name="PlayerLobby"   component={PlayerLobbyScreen}   options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
-      <Stack.Screen name="PlayerRound"   component={PlayerRoundScreen}   options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
-      <Stack.Screen name="PlayerResults" component={PlayerResultsScreen} options={{ headerShown: false, gestureEnabled: false, ...{ detachPreviousScreen: false } }} />
+      <Stack.Screen name="PlayerGame" component={PlayerGameScreen} options={{ headerShown: false, gestureEnabled: false }} />
     </Stack.Navigator>
   );
 }
