@@ -45,17 +45,20 @@ export default function HomeScreen(): React.ReactElement {
 
   function handleRejoin(): void {
     if (isActiveHost && savedHostSession) {
-      navigation.navigate('Host', {
-        screen: 'HostGame',
-        params: {
+      navigation.dispatch(CommonActions.reset({ index: 1, routes: [
+        { name: 'Home' },
+        { name: 'Host', state: { routes: [{ name: 'HostGame', params: {
           questionnaireId: savedHostSession.questionnaireId,
           rounds:          savedHostSession.rounds,
           savedRoomCode:   savedHostSession.roomCode,
           savedHostToken:  savedHostSession.hostToken,
-        },
-      });
+        } }] } },
+      ] }));
     } else if (isActivePlayer) {
-      navigation.navigate('Player', { screen: 'PlayerGame', params: {} });
+      navigation.dispatch(CommonActions.reset({ index: 1, routes: [
+        { name: 'Home' },
+        { name: 'Player', state: { routes: [{ name: 'PlayerGame', params: {} }] } },
+      ] }));
     }
   }
 

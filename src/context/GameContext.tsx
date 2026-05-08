@@ -124,6 +124,7 @@ export function GameProvider({ children }: Props): React.ReactElement {
     }
     queueRef.current = [];
     onMsgRef.current = opts.onMessage;
+    dispatch({ type: 'SET_HOST', payload: opts.isHost });
 
     const socket = new PartySocket({
       host:  PARTYKIT_HOST,
@@ -159,7 +160,7 @@ export function GameProvider({ children }: Props): React.ReactElement {
 
   const leaveGame = useCallback((): void => {
     const s = stateRef.current;
-    const isHost = s.localPlayerId === null && s.gameState !== null && s.gameState.phase !== GamePhase.GameOver;
+    const isHost = s.isHost && s.gameState !== null && s.gameState.phase !== GamePhase.GameOver;
     if (isHost) {
       const socket = socketRef.current;
       if (socket && socket.readyState === 1) socket.send(JSON.stringify({ type: 'end_game' }));
