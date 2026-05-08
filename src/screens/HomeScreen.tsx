@@ -115,13 +115,13 @@ export default function HomeScreen(): React.ReactElement {
               )}
               <Button
                 label="Host a Game"
-                onPress={() => { if (__DEV__) console.log('[HomeScreen] Host a Game pressed', new Date().toISOString()); leaveGame(); void clearHostSession(); navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'Host', state: { routes: [{ name: 'SetupGame' }] } }] })); }}
+                onPress={() => { leaveGame(); void clearHostSession(); navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'Host', state: { routes: [{ name: 'SetupGame' }] } }] })); }}
                 style={styles.actionButton}
                 variant={hasActiveGame ? 'secondary' : 'primary'}
               />
               <Button
                 label="Join a Game"
-                onPress={() => { if (__DEV__) console.log('[HomeScreen] Join a Game pressed', new Date().toISOString()); leaveGame(); void clearHostSession(); navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'Player', state: { routes: [{ name: 'PlayerGame', params: {} }] } }] })); }}
+                onPress={() => { leaveGame(); void clearHostSession(); navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'Player', state: { routes: [{ name: 'PlayerGame', params: {} }] } }] })); }}
                 variant="secondary"
                 style={styles.actionButton}
               />

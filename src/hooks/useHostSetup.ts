@@ -36,11 +36,9 @@ export function useHostSetup({ questionnaireId, rounds, savedRoomCode, savedHost
   const [hostToken] = useState(() => savedHostToken ?? generateHostToken());
 
   useEffect(() => {
-    if (__DEV__) console.log('[useHostSetup] signing room code', roomCode, new Date().toISOString());
     let cancelled = false;
     signRoomCode(roomCode).then((sig) => {
       if (cancelled) return;
-      if (__DEV__) console.log('[useHostSetup] connecting as host');
       void saveHostSession({ questionnaireId, rounds, roomCode, hostToken });
       connect({ roomCode, isHost: true, hostToken, sig, onMessage: handleMessage });
     });

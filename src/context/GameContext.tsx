@@ -66,7 +66,7 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
       return { ...state, pendingRequests: state.pendingRequests.filter((r) => r.playerId !== action.payload) };
     case 'SET_KICKED':    return { ...state, isKicked: true };
     case 'SET_ABANDONED': return { ...state, isAbandoned: true };
-    case 'SET_PAUSED':    return { ...state, isPaused: action.payload };
+    case 'SET_PAUSED':    return state.gameResults !== null ? state : { ...state, isPaused: action.payload };
     case 'SET_GAME_RESULTS': return { ...state, gameResults: action.payload };
     case 'SET_ROUND_RESULTS':
       return { ...state, lastRoundResults: action.payload.questionResults, lastPlayerScores: action.payload.playerScores, lastRoundLabel: action.payload.roundLabel };
@@ -99,7 +99,6 @@ const GameContext = createContext<GameContextValue | null>(null);
 
 type Props = { children: React.ReactNode };
 
-const DEVICE_ID = Math.random().toString(36).slice(2, 6).toUpperCase();
 
 export function GameProvider({ children }: Props): React.ReactElement {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -110,7 +109,6 @@ export function GameProvider({ children }: Props): React.ReactElement {
   stateRef.current = state;
 
   const disconnect = useCallback((): void => {
-    if (__DEV__) console.log(`[${DEVICE_ID}] disconnect`);
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
@@ -120,9 +118,7 @@ export function GameProvider({ children }: Props): React.ReactElement {
   }, []);
 
   const connect = useCallback((opts: ConnectOptions): void => {
-    if (__DEV__) console.log(`[${DEVICE_ID}] connect`, opts.roomCode, opts.isHost ? 'host' : 'player');
     if (socketRef.current) {
-      if (__DEV__) console.log(`[${DEVICE_ID}] closing existing socket`);
       socketRef.current.close();
       socketRef.current = null;
     }
@@ -138,28 +134,22 @@ export function GameProvider({ children }: Props): React.ReactElement {
     socket.addEventListener('message', (event: MessageEvent<string>) => {
       try {
         const msg = JSON.parse(event.data) as ServerMessage;
-        if (__DEV__) console.log(`[${DEVICE_ID}] recv`, msg.type);
         onMsgRef.current?.(msg);
       } catch { /* malformed — ignore */ }
     });
 
     socket.addEventListener('open', () => {
-      if (__DEV__) console.log(`[${DEVICE_ID}] socket opened`, opts.roomCode);
       const pending = queueRef.current.splice(0);
       for (const msg of pending) socket.send(JSON.stringify(msg));
       opts.onOpen?.();
     });
 
-    socket.addEventListener('close', (e) => {
-      if (__DEV__) console.log(`[${DEVICE_ID}] socket closed`, opts.roomCode, e.code, e.reason);
-    });
 
     socketRef.current = socket;
   }, []);
 
   const send = useCallback((msg: ClientMessage): void => {
     const socket = socketRef.current;
-    if (__DEV__) console.log(`[${DEVICE_ID}] send`, msg.type, 'readyState:', socket?.readyState ?? 'null');
     if (socket && socket.readyState === 1) {
       socket.send(JSON.stringify(msg));
     } else {
@@ -170,7 +160,6 @@ export function GameProvider({ children }: Props): React.ReactElement {
   const leaveGame = useCallback((): void => {
     const s = stateRef.current;
     const isHost = s.localPlayerId === null && s.gameState !== null && s.gameState.phase !== GamePhase.GameOver;
-    if (__DEV__) console.log(`[${DEVICE_ID}] leaveGame isHost:`, isHost, 'localPlayerId:', s.localPlayerId, 'gameState:', s.gameState?.phase);
     if (isHost) {
       const socket = socketRef.current;
       if (socket && socket.readyState === 1) socket.send(JSON.stringify({ type: 'end_game' }));
