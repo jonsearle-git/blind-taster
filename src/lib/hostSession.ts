@@ -3,11 +3,13 @@ import type { Round } from '../types/game';
 
 const KEY = '@blindtaster/host-session';
 
+// Hint for rejoin UX only — the server trusts clientId, not anything stored here.
+// rounds are kept so the host nav params have what they need until the server's
+// host_state message arrives with the authoritative copy.
 export type HostSession = {
   questionnaireId: string;
   rounds:          Round[];
   roomCode:        string;
-  hostToken:       string;
 };
 
 export async function saveHostSession(session: HostSession): Promise<void> {

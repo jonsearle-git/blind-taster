@@ -55,6 +55,8 @@ function makeState(overrides: Partial<ServerState> = {}): ServerState {
     pending: new Map(),
     roundAnswers: new Map(),
     roundHistory: new Map(),
+    hostClientId: null,
+    pausedFromPhase: null,
     ...overrides,
   };
 }

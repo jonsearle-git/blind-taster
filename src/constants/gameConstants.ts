@@ -3,6 +3,8 @@ export enum GamePhase {
   InRound         = 'in_round',
   AllAnswered     = 'all_answered',
   AnswersRevealed = 'answers_revealed',
+  Paused          = 'paused',
+  Abandoned       = 'abandoned',
   GameOver        = 'game_over',
 }
 
@@ -24,10 +26,6 @@ export enum PlayerStatus {
   Connected    = 'connected',
   Disconnected = 'disconnected',
   Kicked       = 'kicked',
-}
-
-export enum PauseReason {
-  HostDisconnected = 'host_disconnected',
 }
 
 export enum ConnectionStatus {

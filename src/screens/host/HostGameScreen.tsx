@@ -25,7 +25,6 @@ import { QRCodeDisplay } from '../../components/QRCodeDisplay';
 import { PlayerRow } from '../../components/PlayerRow';
 import { PlayerStatusList } from '../../components/PlayerStatusList';
 import { EmptyState } from '../../components/EmptyState';
-import { GamePausedOverlay } from '../../components/GamePausedOverlay';
 import { HostDropdown } from '../../components/HostDropdown';
 import { LeaderboardRow } from '../../components/LeaderboardRow';
 import { Divider } from '../../components/Divider';
@@ -120,12 +119,14 @@ function PlayerResultSection({ result, highlight, expanded, onToggle }: ResultSe
 export default function HostGameScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { questionnaireId, rounds, savedRoomCode, savedHostToken } = route.params;
+  const { questionnaireId, rounds: paramRounds, savedRoomCode } = route.params;
 
   const { state, dispatch, send, disconnect } = useGameContext();
   const { questionnaires }   = useQuestionnairesContext();
   const { admitPlayer, denyPlayer, startGame, revealAnswers, advanceRound, endGame, kickPlayer, resyncPlayers } = useHostControls();
-  const { roomCode }         = useHostSetup({ questionnaireId, rounds, savedRoomCode, savedHostToken });
+  // After reconnect, the server's host_state message provides authoritative rounds (with correctAnswers).
+  const rounds = state.hostRounds ?? paramRounds;
+  const { roomCode }         = useHostSetup({ questionnaireId, rounds: paramRounds, savedRoomCode });
   const { players, sorted, waiting, answered, currentRound, totalRounds, gameName, roundPhase, isLastRound, isAnswering } = useHostGame();
 
   const [showAbandon,    setShowAbandon]    = useState(false);
@@ -240,8 +241,6 @@ export default function HostGameScreen(): React.ReactElement {
           <Button label="Reveal Answers" onPress={revealAnswers} disabled={roundPhase !== RoundPhase.AllAnswered} />
           <Button label={isLastRound ? 'End Game' : 'Next Round'} onPress={isLastRound ? endGame : advanceRound} disabled={roundPhase !== RoundPhase.AnswersRevealed} />
         </View>
-
-        <GamePausedOverlay visible={state.isPaused} />
 
         <HostDropdown
           visible={showMenu}

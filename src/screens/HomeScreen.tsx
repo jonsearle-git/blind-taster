@@ -51,7 +51,6 @@ export default function HomeScreen(): React.ReactElement {
           questionnaireId: savedHostSession.questionnaireId,
           rounds:          savedHostSession.rounds,
           savedRoomCode:   savedHostSession.roomCode,
-          savedHostToken:  savedHostSession.hostToken,
         } }] } },
       ] }));
     } else if (isActivePlayer) {

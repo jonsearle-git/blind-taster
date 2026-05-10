@@ -31,7 +31,12 @@
       "Bash(npx expo-doctor *)",
       "Bash(del \"c:\\\\Users\\\\jon_s\\\\source\\\\repos\\\\blind-taster\\\\src\\\\screens\\\\host\\\\HostLeaderboardScreen.tsx\")",
       "Bash(npx wrangler *)",
-      "Bash(xargs grep -l \"SET_HOST\")"
+      "Bash(xargs grep -l \"SET_HOST\")",
+      "WebFetch(domain:blog.partykit.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.partykit.io)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:blog.ashleypeacock.co.uk)"
     ]
   }
 }

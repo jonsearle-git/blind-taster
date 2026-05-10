@@ -10,41 +10,32 @@ function generateRoomCode(): string {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-function generateHostToken(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-}
-
 type Options = {
   questionnaireId: string;
   rounds:          Round[];
   savedRoomCode?:  string;
-  savedHostToken?: string;
 };
 
 type HostSetup = {
-  roomCode:  string;
-  hostToken: string;
+  roomCode: string;
 };
 
-export function useHostSetup({ questionnaireId, rounds, savedRoomCode, savedHostToken }: Options): HostSetup {
+export function useHostSetup({ questionnaireId, rounds, savedRoomCode }: Options): HostSetup {
   const { connect }       = useGameContext();
   const { handleMessage } = useGameState();
 
-  const [roomCode]  = useState(() => savedRoomCode  ?? generateRoomCode());
-  const [hostToken] = useState(() => savedHostToken ?? generateHostToken());
+  const [roomCode] = useState(() => savedRoomCode ?? generateRoomCode());
 
   useEffect(() => {
     let cancelled = false;
     signRoomCode(roomCode).then((sig) => {
       if (cancelled) return;
-      void saveHostSession({ questionnaireId, rounds, roomCode, hostToken });
-      connect({ roomCode, isHost: true, hostToken, sig, onMessage: handleMessage });
+      void saveHostSession({ questionnaireId, rounds, roomCode });
+      void connect({ roomCode, isHost: true, sig, onMessage: handleMessage });
     });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { roomCode, hostToken };
+  return { roomCode };
 }

@@ -1,4 +1,3 @@
-import { PauseReason } from '../constants/gameConstants';
 import { PlayerRoundAnswers } from './answer';
 import { GameResults, PlayerScore, QuestionResult } from './results';
 import { GameState, Round, RoundForPlayer } from './game';
@@ -9,6 +8,7 @@ import { Questionnaire } from './questionnaire';
 
 export type ServerMessage =
   | { type: 'game_state';         payload: GameState }
+  | { type: 'host_state';         payload: { rounds: Round[] } }
   | { type: 'join_request';       payload: JoinRequest }
   | { type: 'player_admitted';    payload: { playerId: string; name: string } }
   | { type: 'player_denied';      payload: { playerId: string } }
@@ -23,16 +23,12 @@ export type ServerMessage =
   | { type: 'all_players_answered' }
   | { type: 'answers_revealed';   payload: { roundNumber: number; roundLabel: string | null; questionResults: QuestionResult[]; playerScores: PlayerScore[] } }
   | { type: 'round_ended' }
-  | { type: 'game_ended';         payload: GameResults }
-  | { type: 'game_paused';        payload: { reason: PauseReason } }
-  | { type: 'game_resumed' }
-  | { type: 'game_abandoned' };
+  | { type: 'game_ended';         payload: GameResults };
 
 // ─── Client → Server ────────────────────────────────────────────────────────
 
 export type ClientMessage =
   | { type: 'request_join';    payload: { name: string } }
-  | { type: 'restore_player';  payload: { playerId: string } }
   | { type: 'sync_state' }
   | { type: 'admit_player';    payload: { playerId: string } }
   | { type: 'deny_player';     payload: { playerId: string } }

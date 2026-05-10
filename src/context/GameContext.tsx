@@ -3,10 +3,10 @@ import PartySocket from 'partysocket';
 import { PARTYKIT_HOST } from '../lib/config';
 import { GamePhase } from '../constants/gameConstants';
 import type { ClientMessage, ServerMessage } from '../types/partykit';
-import { GameState } from '../types/game';
+import { GameState, Round } from '../types/game';
 import { JoinRequest } from '../types/player';
 import { GameResults, PlayerScore, QuestionResult } from '../types/results';
-import { clearPlayerSession } from '../lib/playerSession';
+import { getClientId } from '../lib/clientId';
 
 type GameContextState = {
   gameState:        GameState | null;
@@ -14,10 +14,9 @@ type GameContextState = {
   localPlayerId:    string | null;
   pendingRequests:  JoinRequest[];
   isKicked:         boolean;
-  isAbandoned:      boolean;
-  isPaused:         boolean;
   gameResults:      GameResults | null;
   activeGameId:     string | null;
+  hostRounds:       Round[] | null;        // full rounds with correctAnswers — host only
   lastRoundResults: QuestionResult[] | null;
   lastPlayerScores: PlayerScore[] | null;
   lastRoundLabel:   string | null;
@@ -31,9 +30,8 @@ type GameAction =
   | { type: 'ADD_JOIN_REQUEST';     payload: JoinRequest }
   | { type: 'REMOVE_JOIN_REQUEST';  payload: string }
   | { type: 'SET_KICKED' }
-  | { type: 'SET_ABANDONED' }
-  | { type: 'SET_PAUSED';           payload: boolean }
   | { type: 'SET_GAME_RESULTS';     payload: GameResults }
+  | { type: 'SET_HOST_ROUNDS';      payload: Round[] }
   | { type: 'SET_ROUND_RESULTS';    payload: { questionResults: QuestionResult[]; playerScores: PlayerScore[]; roundLabel: string | null } }
   | { type: 'CLEAR_ROUND_RESULTS' }
   | { type: 'RESET' };
@@ -44,10 +42,9 @@ const initialState: GameContextState = {
   localPlayerId:    null,
   pendingRequests:  [],
   isKicked:         false,
-  isAbandoned:      false,
-  isPaused:         false,
   gameResults:      null,
   activeGameId:     null,
+  hostRounds:       null,
   lastRoundResults: null,
   lastPlayerScores: null,
   lastRoundLabel:   null,
@@ -64,10 +61,9 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
       return { ...state, pendingRequests: [...state.pendingRequests, action.payload] };
     case 'REMOVE_JOIN_REQUEST':
       return { ...state, pendingRequests: state.pendingRequests.filter((r) => r.playerId !== action.payload) };
-    case 'SET_KICKED':    return { ...state, isKicked: true };
-    case 'SET_ABANDONED': return { ...state, isAbandoned: true };
-    case 'SET_PAUSED':    return state.gameResults !== null ? state : { ...state, isPaused: action.payload };
+    case 'SET_KICKED':       return { ...state, isKicked: true };
     case 'SET_GAME_RESULTS': return { ...state, gameResults: action.payload };
+    case 'SET_HOST_ROUNDS':  return { ...state, hostRounds: action.payload };
     case 'SET_ROUND_RESULTS':
       return { ...state, lastRoundResults: action.payload.questionResults, lastPlayerScores: action.payload.playerScores, lastRoundLabel: action.payload.roundLabel };
     case 'CLEAR_ROUND_RESULTS':
@@ -80,7 +76,6 @@ function reducer(state: GameContextState, action: GameAction): GameContextState 
 type ConnectOptions = {
   roomCode:   string;
   isHost:     boolean;
-  hostToken?: string;
   sig?:       string;
   onMessage:  (msg: ServerMessage) => void;
   onOpen?:    () => void;
@@ -90,7 +85,7 @@ type GameContextValue = {
   state:      GameContextState;
   dispatch:   React.Dispatch<GameAction>;
   send:       (msg: ClientMessage) => void;
-  connect:    (opts: ConnectOptions) => void;
+  connect:    (opts: ConnectOptions) => Promise<void>;
   disconnect: () => void;
   leaveGame:  () => void;
 };
@@ -98,7 +93,6 @@ type GameContextValue = {
 const GameContext = createContext<GameContextValue | null>(null);
 
 type Props = { children: React.ReactNode };
-
 
 export function GameProvider({ children }: Props): React.ReactElement {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -117,7 +111,7 @@ export function GameProvider({ children }: Props): React.ReactElement {
     onMsgRef.current = null;
   }, []);
 
-  const connect = useCallback((opts: ConnectOptions): void => {
+  const connect = useCallback(async (opts: ConnectOptions): Promise<void> => {
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
@@ -125,10 +119,13 @@ export function GameProvider({ children }: Props): React.ReactElement {
     onMsgRef.current = opts.onMessage;
     dispatch({ type: 'SET_HOST', payload: opts.isHost });
 
+    const clientId = await getClientId();
+
     const socket = new PartySocket({
       host:  PARTYKIT_HOST,
       room:  opts.roomCode,
-      query: opts.isHost ? { isHost: '1', token: opts.hostToken ?? '', sig: opts.sig ?? '' } : undefined,
+      id:    clientId,
+      query: opts.isHost ? { isHost: '1', sig: opts.sig ?? '' } : undefined,
     });
 
     socket.addEventListener('message', (event: MessageEvent<string>) => {
@@ -144,7 +141,6 @@ export function GameProvider({ children }: Props): React.ReactElement {
       opts.onOpen?.();
     });
 
-
     socketRef.current = socket;
   }, []);
 
@@ -159,8 +155,8 @@ export function GameProvider({ children }: Props): React.ReactElement {
 
   const leaveGame = useCallback((): void => {
     const s = stateRef.current;
-    const isHost = s.isHost && s.gameState !== null && s.gameState.phase !== GamePhase.GameOver;
-    if (isHost) {
+    const isActiveHost = s.isHost && s.gameState !== null && s.gameState.phase !== GamePhase.GameOver && s.gameState.phase !== GamePhase.Abandoned;
+    if (isActiveHost) {
       const socket = socketRef.current;
       if (socket && socket.readyState === 1) socket.send(JSON.stringify({ type: 'end_game' }));
     }
@@ -170,7 +166,6 @@ export function GameProvider({ children }: Props): React.ReactElement {
     }
     queueRef.current = [];
     onMsgRef.current = null;
-    void clearPlayerSession();
     dispatch({ type: 'RESET' });
   }, [dispatch]);
 

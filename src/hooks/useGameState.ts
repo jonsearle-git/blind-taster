@@ -10,6 +10,9 @@ export function useGameState() {
       case 'game_state':
         dispatch({ type: 'SET_GAME_STATE', payload: msg.payload });
         break;
+      case 'host_state':
+        dispatch({ type: 'SET_HOST_ROUNDS', payload: msg.payload.rounds });
+        break;
       case 'join_request':
         dispatch({ type: 'ADD_JOIN_REQUEST', payload: msg.payload });
         break;
@@ -25,26 +28,13 @@ export function useGameState() {
       case 'player_admitted':
         dispatch({ type: 'SET_LOCAL_PLAYER_ID', payload: msg.payload.playerId });
         break;
-      case 'game_paused':
-        dispatch({ type: 'SET_PAUSED', payload: true });
-        break;
-      case 'game_resumed':
-        dispatch({ type: 'SET_PAUSED', payload: false });
-        break;
       case 'you_were_kicked':
         dispatch({ type: 'SET_KICKED' });
         break;
-      case 'game_abandoned':
-        dispatch({ type: 'SET_ABANDONED' });
-        break;
       case 'round_started':
-        // Clear previous round's results when a new round begins.
         dispatch({ type: 'CLEAR_ROUND_RESULTS' });
         break;
       default:
-        // all_players_answered, player_joined, player_kicked, game_started,
-        // player_answered, round_ended, you_were_denied — covered by game_state
-        // updates or handled by individual screens.
         break;
     }
   }, [dispatch]);

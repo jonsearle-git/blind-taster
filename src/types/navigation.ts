@@ -1,5 +1,4 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
-import { GameResults } from './results';
 import { Round } from './game';
 import { Question } from './questionnaire';
 import { QuestionType } from '../constants/gameConstants';
@@ -17,9 +16,9 @@ export type HostStackParamList = {
   QuestionnaireBuilder: { questionnaireId?: string };
   QuestionEditor:       { questionType?: QuestionType; question?: Question };
   RoundsBuilder:        { gameId?: string; questionnaireId?: string };
-  HostGame:             { questionnaireId: string; rounds: Round[]; savedRoomCode?: string; savedHostToken?: string };
+  HostGame:             { questionnaireId: string; rounds: Round[]; savedRoomCode?: string };
 };
 
 export type PlayerStackParamList = {
-  PlayerGame: { roomCode?: string; savedPlayerId?: string; savedName?: string };
+  PlayerGame: { roomCode?: string };
 };

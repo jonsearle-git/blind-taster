@@ -15,7 +15,6 @@ import { useGameContext } from '../../context/GameContext';
 import { useGameState } from '../../hooks/useGameState';
 import { usePlayerActions } from '../../hooks/usePlayerActions';
 import { useAnswers } from '../../hooks/useAnswers';
-import { savePlayerSession, clearPlayerSession } from '../../lib/playerSession';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Banner } from '../../components/Banner';
 import { Button } from '../../components/Button';
@@ -72,18 +71,15 @@ function RoundSection({ round, expanded, onToggle }: RoundSectionProps): React.R
 export default function PlayerGameScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { roomCode: savedRoomCode, savedPlayerId, savedName } = route.params ?? {};
+  const { roomCode: savedRoomCode } = route.params ?? {};
 
   const { state, dispatch, connect, disconnect, send, leaveGame } = useGameContext();
   const { handleMessage } = useGameState();
   const { requestJoin, submitAnswers } = usePlayerActions();
 
-  const localPlayerIdRef = useRef<string | null>(null);
-  localPlayerIdRef.current = state.localPlayerId;
-
   // ── Join state ────────────────────────────────────────────────────────
   const [roomCodeInput, setRoomCodeInput] = useState(savedRoomCode?.toUpperCase() ?? '');
-  const [name,          setName]          = useState(savedName ?? '');
+  const [name,          setName]          = useState('');
   const [isDenied,      setIsDenied]      = useState(false);
   const [isWaiting,     setIsWaiting]     = useState(false);
   const [roomCodeError, setRoomCodeError] = useState<string | undefined>();
@@ -129,22 +125,6 @@ export default function PlayerGameScreen(): React.ReactElement {
     clearAnswers();
   }, [currentRound, clearAnswers]);
 
-  // ── Rejoin on mount if saved session ─────────────────────────────────
-  useEffect(() => {
-    if (savedRoomCode && savedPlayerId) {
-      pendingJoinRef.current = false;
-      connect({
-        roomCode: savedRoomCode,
-        isHost:   false,
-        onMessage: buildOnMessage(),
-        onOpen: () => {
-          send({ type: 'restore_player', payload: { playerId: savedPlayerId } });
-        },
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   function buildOnMessage() {
     return (msg: Parameters<typeof handleMessage>[0]) => {
       if (msg.type === 'name_taken') {
@@ -156,9 +136,6 @@ export default function PlayerGameScreen(): React.ReactElement {
         setIsDenied(true);
         disconnect();
         dispatch({ type: 'RESET' });
-      } else if (msg.type === 'player_admitted') {
-        void savePlayerSession({ roomCode: roomCodeInput.trim(), playerId: msg.payload.playerId, name: name.trim() });
-        handleMessage(msg);
       } else {
         handleMessage(msg);
       }
@@ -171,7 +148,7 @@ export default function PlayerGameScreen(): React.ReactElement {
     setIsDenied(false);
     setIsWaiting(true);
     pendingJoinRef.current = true;
-    connect({
+    void connect({
       roomCode:  trimmedCode,
       isHost:    false,
       onMessage: buildOnMessage(),
@@ -179,9 +156,9 @@ export default function PlayerGameScreen(): React.ReactElement {
         if (pendingJoinRef.current) {
           pendingJoinRef.current = false;
           requestJoin(trimmedName);
-        } else if (localPlayerIdRef.current) {
-          send({ type: 'restore_player', payload: { playerId: localPlayerIdRef.current } });
         }
+        // If already an admitted player on this room (server recognises clientId),
+        // server auto-resumes via game_state — no action needed.
       },
     });
   }
@@ -201,13 +178,11 @@ export default function PlayerGameScreen(): React.ReactElement {
   }
 
   function handleLeave(): void {
-    void clearPlayerSession();
     leaveGame();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Home' }] }));
   }
 
   function handleDone(): void {
-    void clearPlayerSession();
     disconnect();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Home' }] }));
   }
@@ -280,7 +255,7 @@ export default function PlayerGameScreen(): React.ReactElement {
   }
 
   // ── Round view ────────────────────────────────────────────────────────
-  if (state.localPlayerId && (phase === GamePhase.InRound || phase === GamePhase.AllAnswered || phase === GamePhase.AnswersRevealed)) {
+  if (state.localPlayerId && (phase === GamePhase.InRound || phase === GamePhase.AllAnswered || phase === GamePhase.AnswersRevealed || phase === GamePhase.Paused)) {
     return (
       <ScreenContainer noPadding>
         <Banner title={`Round ${currentRound} of ${totalRounds}`} subtitle={gameName || undefined} score={score} />
@@ -317,13 +292,13 @@ export default function PlayerGameScreen(): React.ReactElement {
           </View>
         )}
         <KickedOverlay visible={state.isKicked} />
-        <GamePausedOverlay visible={state.isPaused} />
+        <GamePausedOverlay visible={phase === GamePhase.Paused} />
       </ScreenContainer>
     );
   }
 
   // ── Lobby view ────────────────────────────────────────────────────────
-  if (state.localPlayerId && phase === GamePhase.Lobby) {
+  if (state.localPlayerId && (phase === GamePhase.Lobby || phase === GamePhase.Abandoned)) {
     const players  = game?.players ?? [];
     const roomCode = game?.roomCode ?? '';
     const questionnaire = game?.questionnaire;
@@ -361,8 +336,7 @@ export default function PlayerGameScreen(): React.ReactElement {
           </View>
         </LinearGradient>
         <KickedOverlay visible={state.isKicked} />
-        <KickedOverlay visible={state.isAbandoned} title="Game Abandoned" message="The game was abandoned by the host." />
-        <GamePausedOverlay visible={state.isPaused} />
+        <KickedOverlay visible={phase === GamePhase.Abandoned} title="Game Abandoned" message="The game was abandoned by the host." />
       </SafeAreaView>
     );
   }
