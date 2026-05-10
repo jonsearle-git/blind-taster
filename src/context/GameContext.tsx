@@ -122,7 +122,6 @@ export function GameProvider({ children }: Props): React.ReactElement {
       socketRef.current.close();
       socketRef.current = null;
     }
-    queueRef.current = [];
     onMsgRef.current = opts.onMessage;
     dispatch({ type: 'SET_HOST', payload: opts.isHost });
 

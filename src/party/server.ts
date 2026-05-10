@@ -16,7 +16,7 @@ import {
   type ServerState,
 } from './helpers';
 
-type ConnState = { role: 'host' | 'player' | 'pending'; playerId?: string };
+type ConnState = { role: 'host' | 'player' | 'pending' | 'verifying-host'; playerId?: string };
 
 interface Env {
   main:              DurableObjectNamespace;
@@ -43,6 +43,7 @@ async function verifyRoomSig(roomCode: string, sigHex: string, keyHex: string): 
 export class BlindTasterServer extends Party.Server<Env> {
   private hostToken:        string | null = null; // C1: set on first host connect, verified on reconnect
   private hostConnectionId: string | null = null; // tracks active host conn to avoid stale-close false pauses
+  private hostMsgBuffer:    ClientMessage[] = []; // messages received during verifyAndAdmitHost
 
   private s: ServerState = {
     phase:        GamePhase.Lobby,
@@ -66,7 +67,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     const isHost = params.get('isHost') === '1';
 
     if (isHost) {
-      // S2: async HMAC verification runs in background; connection state is set only after success
+      conn.setState({ role: 'verifying-host' } satisfies ConnState);
       void this.verifyAndAdmitHost(conn, params);
     } else {
       conn.setState({ role: 'pending' } satisfies ConnState);
@@ -78,13 +79,15 @@ export class BlindTasterServer extends Party.Server<Env> {
     const sig   = params.get('sig')   ?? '';
     const token = params.get('token') ?? '';
     if (!(await verifyRoomSig(this.name, sig, this.env.ROOM_SIGNING_KEY))) {
+      this.hostMsgBuffer = [];
       conn.close(1008, 'invalid room signature'); return;
     }
     // C1: verify or register host token
     if (this.hostToken === null) {
-      if (token.length < 32) { conn.close(1008, 'invalid token'); return; }
+      if (token.length < 32) { this.hostMsgBuffer = []; conn.close(1008, 'invalid token'); return; }
       this.hostToken = token;
     } else if (token !== this.hostToken) {
+      this.hostMsgBuffer = [];
       conn.close(1008, 'invalid token'); return;
     }
     // Close any existing host connection — clear hostConnectionId first so onClose
@@ -103,6 +106,9 @@ export class BlindTasterServer extends Party.Server<Env> {
       void this.ctx.storage.deleteAlarm();
       this.broadcastToPlayers({ type: 'game_resumed' });
     }
+    // Flush any messages that arrived during verification
+    const buffered = this.hostMsgBuffer.splice(0);
+    for (const bufferedMsg of buffered) this.onMessage(conn, JSON.stringify(bufferedMsg));
   }
 
   onMessage(sender: Party.Connection, message: Party.WSMessage): void {
@@ -119,6 +125,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','kick_player','end_game']);
     const PLAYER_ONLY  = new Set(['submit_answers', 'sync_state']);
     const PENDING_ONLY = new Set(['request_join', 'restore_player']);
+    if (HOST_ONLY.has(msg.type)    && cs?.role === 'verifying-host') { this.hostMsgBuffer.push(msg); return; }
     if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
     if (PLAYER_ONLY.has(msg.type)  && cs?.role !== 'player')  return;
     if (PENDING_ONLY.has(msg.type) && cs?.role !== 'pending') return;
