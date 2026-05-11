@@ -8,11 +8,24 @@ type Props = {
   subtitle?:        string;
   score?:           number;
   onHostMenuPress?: () => void;
+  onBackPress?:     () => void;
 };
 
-export function Banner({ title, subtitle, score, onHostMenuPress }: Props): React.ReactElement {
+export function Banner({ title, subtitle, score, onHostMenuPress, onBackPress }: Props): React.ReactElement {
   return (
     <View style={styles.container}>
+      {onBackPress !== undefined && (
+        <Pressable
+          onPress={onBackPress}
+          style={styles.backButton}
+          accessibilityLabel="Back"
+          accessibilityRole="button"
+          hitSlop={Spacing.sm}
+        >
+          <Text style={styles.backIcon}>‹</Text>
+        </Pressable>
+      )}
+
       <View style={styles.titleBlock}>
         {subtitle !== undefined && (
           <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
@@ -94,5 +107,15 @@ const styles = StyleSheet.create({
   menuIcon: {
     color:    Colors.ink,
     fontSize: FontSize.xl,
+  },
+  backButton: {
+    paddingRight: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  backIcon: {
+    color:      Colors.ink,
+    fontSize:   FontSize.xxl,
+    fontWeight: '900',
+    lineHeight: FontSize.xxl,
   },
 });

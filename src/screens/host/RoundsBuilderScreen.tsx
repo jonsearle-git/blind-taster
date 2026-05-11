@@ -12,6 +12,7 @@ import { Round } from '../../types/game';
 import { Answer } from '../../types/answer';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { useGames } from '../../hooks/useGames';
+import { isNameUnique } from '../../lib/questionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { TextInput } from '../../components/TextInput';
 import { Button } from '../../components/Button';
@@ -109,7 +110,10 @@ export default function RoundsBuilderScreen(): React.ReactElement {
   }
 
   function handleSetupContinue(): void {
-    const nameErr = !gameName.trim() ? 'Give this game a name.' : undefined;
+    const trimmed = gameName.trim();
+    let nameErr: string | undefined;
+    if (!trimmed) nameErr = 'Give this game a name.';
+    else if (!isNameUnique(trimmed, games, existingGame?.id)) nameErr = 'A game with this name already exists.';
     const qErr    = !questionnaireId ? 'Select a questionnaire.'
                   : questions.length === 0 ? 'This questionnaire has no questions.'
                   : undefined;

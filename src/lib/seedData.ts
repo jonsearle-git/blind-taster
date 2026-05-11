@@ -1,7 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionType } from '../constants/gameConstants';
 import { Questionnaire } from '../types/questionnaire';
 import { SavedGame } from '../types/savedGame';
-import { saveQuestionnaire, saveSavedGame } from './database';
+import { saveQuestionnaire, saveSavedGame, SCHEMA_VERSION } from './database';
+
+const SEED_FLAG_KEY = '@blindtaster/seed-version';
 
 const T = 1700000000000; // fixed timestamp so IDs stay stable across reloads
 
@@ -639,4 +642,14 @@ const ALL_GAMES          = [BEER_GAME, WINE_GAME, SPARKLING_GAME, CHOCOLATE_GAME
 export async function seedDatabase(): Promise<void> {
   for (const q of ALL_QUESTIONNAIRES) await saveQuestionnaire(q);
   for (const g of ALL_GAMES)          await saveSavedGame(g);
+}
+
+// Auto-seed on first launch (or after schema bump, which wipes the DB).
+// Tracks the seeded schema version in AsyncStorage so user deletions are
+// respected across launches at the same schema version.
+export async function seedIfNeeded(): Promise<void> {
+  const stored = await AsyncStorage.getItem(SEED_FLAG_KEY);
+  if (stored === String(SCHEMA_VERSION)) return;
+  await seedDatabase();
+  await AsyncStorage.setItem(SEED_FLAG_KEY, String(SCHEMA_VERSION));
 }

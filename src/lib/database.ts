@@ -3,7 +3,8 @@ import { Questionnaire } from '../types/questionnaire';
 import { SavedGame } from '../types/savedGame';
 
 // Bump this whenever the schema changes — old DB is dropped and recreated.
-const SCHEMA_VERSION = 3;
+// Also re-seeds the database on next boot via seedIfNeeded().
+export const SCHEMA_VERSION = 3;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 

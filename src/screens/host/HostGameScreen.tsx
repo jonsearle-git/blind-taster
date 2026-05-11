@@ -1,6 +1,7 @@
 import { StyleSheet, View, Text, ScrollView, Pressable, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,8 +82,12 @@ function LobbyJoinRow({ request, onAdmit, onDeny }: LobbyJoinRowProps): React.Re
       </View>
       <Text style={styles.lobbyJoinName} numberOfLines={1}>{request.name}</Text>
       <View style={styles.lobbyJoinActions}>
-        <Button label="Admit" onPress={() => onAdmit(request.playerId)} style={styles.lobbyJoinBtn} />
-        <Button label="Deny" onPress={() => onDeny(request.playerId)} variant="destructive" style={styles.lobbyJoinBtn} />
+        <Pressable onPress={() => onAdmit(request.playerId)} style={styles.iconBtnAdmit} accessibilityRole="button" accessibilityLabel={`Admit ${request.name}`}>
+          <Ionicons name="checkmark" size={22} color={Colors.cream} />
+        </Pressable>
+        <Pressable onPress={() => onDeny(request.playerId)} style={styles.iconBtnDeny} accessibilityRole="button" accessibilityLabel={`Deny ${request.name}`}>
+          <Ionicons name="close" size={22} color={Colors.cream} />
+        </Pressable>
       </View>
     </View>
   );
@@ -130,7 +135,6 @@ export default function HostGameScreen(): React.ReactElement {
   const { players, sorted, waiting, answered, currentRound, totalRounds, gameName, roundPhase, isLastRound, isAnswering } = useHostGame();
 
   const [showAbandon,    setShowAbandon]    = useState(false);
-  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showMenu,       setShowMenu]       = useState(false);
   const [kickTarget,     setKickTarget]     = useState<{ id: string; name: string } | null>(null);
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
@@ -144,6 +148,17 @@ export default function HostGameScreen(): React.ReactElement {
     dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: roomCode });
     return () => { dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: null }); };
   }, [dispatch, roomCode]);
+
+  // Push questionnaire to server in lobby so players see the game name before start.
+  // send() queues until the socket opens.
+  const lobbyInitSentRef = useRef(false);
+  useEffect(() => {
+    if (lobbyInitSentRef.current) return;
+    if (!questionnaire) return;
+    if (phase !== undefined && phase !== GamePhase.Lobby) return;
+    send({ type: 'lobby_init', payload: { questionnaire } });
+    lobbyInitSentRef.current = true;
+  }, [questionnaire, phase, send]);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
@@ -208,7 +223,7 @@ export default function HostGameScreen(): React.ReactElement {
   if (phase === GamePhase.InRound || phase === GamePhase.AllAnswered || phase === GamePhase.AnswersRevealed) {
     return (
       <ScreenContainer noPadding>
-        <Banner title={`Round ${currentRound} of ${totalRounds}`} subtitle={gameName || undefined} onHostMenuPress={() => setShowMenu(true)} />
+        <Banner title="Host" subtitle={`Round ${currentRound} of ${totalRounds}${gameName ? ` · ${gameName}` : ''}`} onHostMenuPress={() => setShowMenu(true)} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
           {pendingRequests.length > 0 && (
@@ -230,7 +245,7 @@ export default function HostGameScreen(): React.ReactElement {
           {isAnswering ? (
             <>
               <CollapsibleSection title="Not answered" players={waiting} defaultOpen onKick={handleKickRequest} showScore />
-              <CollapsibleSection title="Answered" players={answered} defaultOpen={false} onKick={handleKickRequest} showScore />
+              <CollapsibleSection title="Answered" players={answered} defaultOpen onKick={handleKickRequest} showScore />
             </>
           ) : (
             <PlayerStatusList players={sorted} showScore onKick={handleKickRequest} />
@@ -246,19 +261,13 @@ export default function HostGameScreen(): React.ReactElement {
           visible={showMenu}
           roomCode={roomCode}
           onClose={() => setShowMenu(false)}
-          onEndGame={() => { setShowMenu(false); setShowEndConfirm(true); }}
+          onEndGame={endGame}
           onResyncPlayers={resyncPlayers}
-        />
-
-        <ConfirmDialog
-          visible={showEndConfirm}
-          title="End Game Early"
-          message="This will end the game immediately and show results with data collected so far."
-          confirmLabel="End Game"
-          cancelLabel="Cancel"
-          destructive
-          onConfirm={() => { setShowEndConfirm(false); endGame(); }}
-          onCancel={() => setShowEndConfirm(false)}
+          endGameConfirm={{
+            title:        'End Game Early',
+            message:      'This will end the game immediately and show results with data collected so far.',
+            confirmLabel: 'End Game',
+          }}
         />
 
         <ConfirmDialog
@@ -280,50 +289,65 @@ export default function HostGameScreen(): React.ReactElement {
   const canStart        = admittedPlayers.length >= 1 && questionnaire !== null;
 
   return (
-    <LinearGradient colors={[Colors.sun, Colors.melon]} style={styles.gradient}>
-      <View style={styles.sparkle1} pointerEvents="none"><Sparkle size={28} color={Colors.cream} /></View>
-      <View style={styles.sparkle2} pointerEvents="none"><Sparkle size={18} color={Colors.ink} /></View>
+    <SafeAreaView style={styles.lobbySafe} edges={['top']}>
+      <Banner title="Host" subtitle={questionnaire?.name || 'Lobby'} onHostMenuPress={() => setShowMenu(true)} />
+      <LinearGradient colors={[Colors.sun, Colors.melon]} style={styles.gradient}>
+        <View style={styles.sparkle1} pointerEvents="none"><Sparkle size={28} color={Colors.cream} /></View>
+        <View style={styles.sparkle2} pointerEvents="none"><Sparkle size={18} color={Colors.ink} /></View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.inner}>
-        <View style={styles.codeSection}>
-          {questionnaire?.name ? <Text style={styles.gameName}>{questionnaire.name}</Text> : null}
-          <QRCodeDisplay roomCode={roomCode} />
-        </View>
-
-        {pendingRequests.length > 0 && (
-          <View style={styles.lobbySection}>
-            <Text style={styles.lobbySectionLabel}>Waiting to Join</Text>
-            <View style={styles.cardList}>
-              {pendingRequests.map((item) => (
-                <LobbyJoinRow key={item.playerId} request={item} onAdmit={admitPlayer} onDeny={denyPlayer} />
-              ))}
-            </View>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.inner}>
+          <View style={styles.codeSection}>
+            <QRCodeDisplay roomCode={roomCode} />
           </View>
-        )}
 
-        <View style={styles.lobbySection}>
-          <Text style={styles.lobbySectionLabel}>The crew ({admittedPlayers.length})</Text>
-          {admittedPlayers.length === 0 ? (
-            <EmptyState title="No players yet" message="Share the room code to invite players." />
-          ) : (
-            <View style={styles.cardList}>
-              {admittedPlayers.map((item) => (
-                <PlayerRow key={item.id} player={item} />
-              ))}
+          {pendingRequests.length > 0 && (
+            <View style={styles.lobbySection}>
+              <Text style={styles.lobbySectionLabel}>Waiting to Join</Text>
+              <View style={styles.cardList}>
+                {pendingRequests.map((item) => (
+                  <LobbyJoinRow key={item.playerId} request={item} onAdmit={admitPlayer} onDeny={denyPlayer} />
+                ))}
+              </View>
             </View>
           )}
-        </View>
-      </ScrollView>
 
-      <View style={styles.lobbyFooter}>
-        <Button
-          label="Start Game"
-          onPress={() => { if (questionnaire) startGame(questionnaire, rounds); }}
-          disabled={!canStart}
-          style={styles.footerButton}
-          accessibilityLabel={canStart ? 'Start the game' : 'Need at least one player to start'}
-        />
-      </View>
+          <View style={styles.lobbySection}>
+            <Text style={styles.lobbySectionLabel}>The crew ({admittedPlayers.length})</Text>
+            {admittedPlayers.length === 0 ? (
+              <EmptyState title="No players yet" message="Share the room code to invite players." />
+            ) : (
+              <View style={styles.cardList}>
+                {admittedPlayers.map((item) => (
+                  <PlayerRow key={item.id} player={item} />
+                ))}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        <View style={styles.lobbyFooter}>
+          <Button
+            label="Start Game"
+            onPress={() => { if (questionnaire) startGame(questionnaire, rounds); }}
+            disabled={!canStart}
+            style={styles.footerButton}
+            accessibilityLabel={canStart ? 'Start the game' : 'Need at least one player to start'}
+          />
+        </View>
+      </LinearGradient>
+
+      <HostDropdown
+        visible={showMenu}
+        roomCode={roomCode}
+        onClose={() => setShowMenu(false)}
+        onEndGame={handleAbandonConfirm}
+        endGameLabel="Abandon Room"
+        endGameConfirm={{
+          title:        'Abandon Room?',
+          message:      'Players waiting in the lobby will be disconnected.',
+          confirmLabel: 'Abandon',
+        }}
+      />
 
       <ConfirmDialog
         visible={showAbandon}
@@ -335,7 +359,7 @@ export default function HostGameScreen(): React.ReactElement {
         onConfirm={handleAbandonConfirm}
         onCancel={() => setShowAbandon(false)}
       />
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
@@ -346,6 +370,7 @@ const styles = StyleSheet.create({
   footer: { gap: Spacing.sm, padding: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 1.5, borderTopColor: Colors.border, backgroundColor: Colors.background },
 
   // Lobby
+  lobbySafe: { flex: 1, backgroundColor: Colors.sun },
   gradient:  { flex: 1 },
   sparkle1:  { position: 'absolute', top: 80,  right: 28, zIndex: 1 },
   sparkle2:  { position: 'absolute', top: 150, left:  24, zIndex: 1 },
@@ -360,6 +385,8 @@ const styles = StyleSheet.create({
   lobbyJoinName:     { flex: 1, fontFamily: FontFamily.body, color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
   lobbyJoinActions:  { flexDirection: 'row', gap: Spacing.sm },
   lobbyJoinBtn:      { paddingVertical: Spacing.xs, minHeight: 40 },
+  iconBtnAdmit:      { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.success, borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
+  iconBtnDeny:       { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.error,   borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
   lobbyFooter:       { padding: Spacing.md, gap: Spacing.sm },
   footerButton:      { width: '100%' },
 

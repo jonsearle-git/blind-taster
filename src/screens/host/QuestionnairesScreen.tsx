@@ -9,6 +9,8 @@ import { HostStackParamList } from '../../types/navigation';
 import { Questionnaire } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { useGames } from '../../hooks/useGames';
+import { questionnaireHasGames } from '../../lib/games';
+import { cloneQuestionnaire, generateCopyName } from '../../lib/questionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
 import { Divider } from '../../components/Divider';
@@ -21,16 +23,28 @@ type Nav = NativeStackNavigationProp<HostStackParamList>;
 
 export default function QuestionnairesScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const { questionnaires, loading, error, remove } = useQuestionnaires();
-  const { games, remove: removeGame }              = useGames();
+  const { questionnaires, loading, error, save, remove } = useQuestionnaires();
+  const { games, remove: removeGame }                    = useGames();
   const [dialog, setDialog]                        = useState<{ q: Questionnaire; affectedGames: ReturnType<typeof games.filter> } | null>(null);
+  const [lockedDialog, setLockedDialog]            = useState<{ q: Questionnaire; count: number } | null>(null);
+  const [duplicateDialog, setDuplicateDialog]      = useState<Questionnaire | null>(null);
 
   function handleEdit(q: Questionnaire): void {
+    const count = games.filter((g) => g.questionnaireId === q.id).length;
+    if (count > 0) { setLockedDialog({ q, count }); return; }
     navigation.navigate('QuestionnaireBuilder', { questionnaireId: q.id });
   }
 
   function handleDelete(q: Questionnaire): void {
     setDialog({ q, affectedGames: games.filter((g) => g.questionnaireId === q.id) });
+  }
+
+  async function confirmDuplicate(): Promise<void> {
+    if (!duplicateDialog) return;
+    const q = duplicateDialog;
+    setDuplicateDialog(null);
+    const name = generateCopyName(q.name, questionnaires);
+    await save(cloneQuestionnaire(q, name));
   }
 
   async function confirmDelete(): Promise<void> {
@@ -60,30 +74,41 @@ export default function QuestionnairesScreen(): React.ReactElement {
           data={questionnaires}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => <Divider spacing={0} />}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Pressable
-                onPress={() => handleEdit(item)}
-                style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit ${item.name}`}
-              >
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.rowMeta}>{item.questions.length} questions</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleDelete(item)}
-                style={styles.deleteBtn}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${item.name}`}
-              >
-                <Text style={styles.deleteText}>✕</Text>
-              </Pressable>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const locked = questionnaireHasGames(item.id, games);
+            return (
+              <View style={styles.row}>
+                <Pressable
+                  onPress={() => handleEdit(item)}
+                  style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${item.name}`}
+                >
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.rowMeta}>{item.questions.length} questions</Text>
+                  </View>
+                  <Text style={styles.chevron}>{locked ? '🔒' : '›'}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setDuplicateDialog(item)}
+                  style={styles.actionBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Duplicate ${item.name}`}
+                >
+                  <Text style={styles.actionText}>⧉</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleDelete(item)}
+                  style={styles.deleteBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${item.name}`}
+                >
+                  <Text style={styles.deleteText}>✕</Text>
+                </Pressable>
+              </View>
+            );
+          }}
         />
       )}
       <ConfirmDialog
@@ -98,6 +123,26 @@ export default function QuestionnairesScreen(): React.ReactElement {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setDialog(null)}
       />
+
+      <ConfirmDialog
+        visible={lockedDialog !== null}
+        title="Questionnaire locked"
+        message={lockedDialog
+          ? `"${lockedDialog.q.name}" can't be edited — ${lockedDialog.count} saved game${lockedDialog.count === 1 ? ' uses' : 's use'} it. Delete those games first, or duplicate this questionnaire.`
+          : ''}
+        confirmLabel="OK"
+        onConfirm={() => setLockedDialog(null)}
+      />
+
+      <ConfirmDialog
+        visible={duplicateDialog !== null}
+        title="Duplicate Questionnaire"
+        message={duplicateDialog ? `Create a copy of "${duplicateDialog.name}"?` : ''}
+        confirmLabel="Copy"
+        cancelLabel="Cancel"
+        onConfirm={() => void confirmDuplicate()}
+        onCancel={() => setDuplicateDialog(null)}
+      />
     </ScreenContainer>
   );
 }
@@ -110,6 +155,8 @@ const styles = StyleSheet.create({
   rowName:     { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
   rowMeta:     { color: Colors.textSecondary, fontSize: FontSize.sm },
   chevron:     { color: Colors.textDisabled, fontSize: FontSize.xl },
+  actionBtn:   { padding: Spacing.md },
+  actionText:  { color: Colors.textSecondary, fontSize: FontSize.lg },
   deleteBtn:   { padding: Spacing.md },
   deleteText:  { color: Colors.error, fontSize: FontSize.md },
 });

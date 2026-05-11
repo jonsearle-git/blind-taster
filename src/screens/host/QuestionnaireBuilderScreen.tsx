@@ -11,6 +11,7 @@ import { HostStackParamList } from '../../types/navigation';
 import { Question, Questionnaire, SliderNumberQuestion } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { questionEditorCallback } from '../../lib/questionEditorCallback';
+import { isNameUnique } from '../../lib/questionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { TextInput } from '../../components/TextInput';
 import { Button } from '../../components/Button';
@@ -81,6 +82,10 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
   async function handleSave(): Promise<void> {
     const trimmedName = name.trim();
     if (!trimmedName) { setNameError('Give your questionnaire a name.'); return; }
+    if (!isNameUnique(trimmedName, questionnaires, existingId)) {
+      setNameError('A questionnaire with this name already exists.');
+      return;
+    }
     setNameError(undefined);
     if (questions.length === 0) { setQuestionsError('Add at least one question.'); return; }
     for (let i = 0; i < questions.length; i++) {

@@ -1,4 +1,5 @@
 import 'react-native-get-random-values';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { AlfaSlabOne_400Regular } from '@expo-google-fonts/alfa-slab-one';
@@ -9,6 +10,7 @@ import { QuestionnairesProvider } from './src/context/QuestionnairesContext';
 import { GamesProvider } from './src/context/GamesContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { seedIfNeeded } from './src/lib/seedData';
 
 export default function App(): React.ReactElement | null {
   const [fontsLoaded] = useFonts({
@@ -21,7 +23,14 @@ export default function App(): React.ReactElement | null {
     DMSans_900Black,
   });
 
-  if (!fontsLoaded) return null;
+  const [seedReady, setSeedReady] = useState(false);
+  useEffect(() => {
+    seedIfNeeded()
+      .catch((e) => console.error('[App] seed failed:', e))
+      .finally(() => setSeedReady(true));
+  }, []);
+
+  if (!fontsLoaded || !seedReady) return null;
 
   return (
     <ErrorBoundary>

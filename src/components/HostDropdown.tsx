@@ -1,31 +1,64 @@
 import { StyleSheet, View, Text, Modal, Pressable } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Colors } from '../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 import { QRCodeDisplay } from './QRCodeDisplay';
+import { Button } from './Button';
 
 type Props = {
-  visible:          boolean;
-  roomCode:         string;
-  onClose:          () => void;
-  onEndGame:        () => void;
-  onResyncPlayers?: () => void;
+  visible:           boolean;
+  roomCode:          string;
+  onClose:           () => void;
+  onEndGame:         () => void;
+  onResyncPlayers?:  () => void;
+  endGameLabel?:     string;
+  endGameConfirm?:   { title: string; message: string; confirmLabel: string };
 };
 
-export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPlayers }: Props): React.ReactElement {
-  const [showRoomCode, setShowRoomCode] = useState(false);
+type View_ = 'menu' | 'roomCode' | 'confirmEnd';
+
+export function HostDropdown({
+  visible,
+  roomCode,
+  onClose,
+  onEndGame,
+  onResyncPlayers,
+  endGameLabel = 'End Game Early',
+  endGameConfirm,
+}: Props): React.ReactElement {
+  const [view, setView] = useState<View_>('menu');
+
+  // Reset to menu view whenever the modal is reopened.
+  useEffect(() => {
+    if (visible) setView('menu');
+  }, [visible]);
+
+  function handleClose(): void {
+    setView('menu');
+    onClose();
+  }
+
+  function handleEndGameTap(): void {
+    if (endGameConfirm) setView('confirmEnd');
+    else { handleClose(); onEndGame(); }
+  }
+
+  function handleConfirmEnd(): void {
+    setView('menu');
+    onClose();
+    onEndGame();
+  }
 
   return (
-    <>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-        <Pressable style={styles.backdrop} onPress={onClose}>
-          <View style={styles.dropdown}>
-
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <Pressable style={styles.backdrop} onPress={handleClose}>
+        {view === 'menu' && (
+          <Pressable style={styles.dropdown} onPress={() => {}}>
             {onResyncPlayers !== undefined && (
               <>
                 <Pressable
-                  onPress={() => { onResyncPlayers(); onClose(); }}
+                  onPress={() => { onResyncPlayers(); handleClose(); }}
                   style={styles.item}
                   accessibilityRole="button"
                 >
@@ -36,7 +69,7 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPl
             )}
 
             <Pressable
-              onPress={() => { onClose(); setShowRoomCode(true); }}
+              onPress={() => setView('roomCode')}
               style={styles.item}
               accessibilityRole="button"
             >
@@ -46,34 +79,52 @@ export function HostDropdown({ visible, roomCode, onClose, onEndGame, onResyncPl
             <View style={styles.divider} />
 
             <Pressable
-              onPress={onEndGame}
+              onPress={handleEndGameTap}
               style={styles.item}
               accessibilityRole="button"
             >
-              <Text style={[styles.itemLabel, styles.destructiveLabel]}>End Game Early</Text>
+              <Text style={[styles.itemLabel, styles.destructiveLabel]}>{endGameLabel}</Text>
             </Pressable>
+          </Pressable>
+        )}
 
-          </View>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={showRoomCode} transparent animationType="fade" onRequestClose={() => setShowRoomCode(false)}>
-        <Pressable style={styles.roomCodeBackdrop} onPress={() => setShowRoomCode(false)}>
+        {view === 'roomCode' && (
           <Pressable style={styles.roomCodeSheet} onPress={() => {}}>
             <Text style={styles.roomCodeLabel}>ROOM CODE</Text>
             <Text style={styles.roomCodeText}>{roomCode}</Text>
             <QRCodeDisplay roomCode={roomCode} />
             <Pressable
-              onPress={() => setShowRoomCode(false)}
+              onPress={handleClose}
               style={styles.closeBtn}
               accessibilityRole="button"
             >
               <Text style={styles.closeBtnLabel}>Close</Text>
             </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
-    </>
+        )}
+
+        {view === 'confirmEnd' && endGameConfirm !== undefined && (
+          <Pressable style={styles.confirmSheet} onPress={() => {}}>
+            <Text style={styles.confirmTitle}>{endGameConfirm.title}</Text>
+            <Text style={styles.confirmMessage}>{endGameConfirm.message}</Text>
+            <View style={styles.confirmActions}>
+              <Button
+                label={endGameConfirm.confirmLabel}
+                onPress={handleConfirmEnd}
+                variant="destructive"
+                style={styles.confirmBtn}
+              />
+              <Button
+                label="Cancel"
+                onPress={() => setView('menu')}
+                variant="secondary"
+                style={styles.confirmBtn}
+              />
+            </View>
+          </Pressable>
+        )}
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -116,14 +167,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
 
-  roomCodeBackdrop: {
-    flex:            1,
-    backgroundColor: Colors.overlay,
-    alignItems:      'center',
-    justifyContent:  'center',
-    padding:         Spacing.lg,
-  },
   roomCodeSheet: {
+    position:        'absolute',
+    top:             '20%',
+    left:            Spacing.lg,
+    right:           Spacing.lg,
     backgroundColor: Colors.surface,
     borderRadius:    BorderRadius.xl,
     borderWidth:     2.5,
@@ -131,7 +179,6 @@ const styles = StyleSheet.create({
     padding:         Spacing.lg,
     alignItems:      'center',
     gap:             Spacing.md,
-    width:           '100%',
   },
   roomCodeLabel: {
     fontFamily:    FontFamily.bodyBold,
@@ -163,4 +210,34 @@ const styles = StyleSheet.create({
     fontWeight:  FontWeight.black,
     color:       Colors.textPrimary,
   },
+
+  confirmSheet: {
+    position:        'absolute',
+    top:             '25%',
+    left:            Spacing.lg,
+    right:           Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius:    BorderRadius.xl,
+    borderWidth:     2.5,
+    borderColor:     Colors.border,
+    padding:         Spacing.lg,
+    gap:             Spacing.md,
+  },
+  confirmTitle: {
+    fontFamily: FontFamily.heading,
+    color:      Colors.textPrimary,
+    fontSize:   FontSize.lg,
+    fontWeight: FontWeight.bold,
+  },
+  confirmMessage: {
+    fontFamily: FontFamily.body,
+    color:      Colors.textSecondary,
+    fontSize:   FontSize.md,
+    lineHeight: FontSize.md * 1.5,
+  },
+  confirmActions: {
+    gap:       Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  confirmBtn: { width: '100%' },
 });

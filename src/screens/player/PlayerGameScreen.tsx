@@ -21,6 +21,7 @@ import { Button } from '../../components/Button';
 import { TextInput } from '../../components/TextInput';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { PlayerRow } from '../../components/PlayerRow';
+import { QRCodeDisplay } from '../../components/QRCodeDisplay';
 import { KickedOverlay } from '../../components/KickedOverlay';
 import { GamePausedOverlay } from '../../components/GamePausedOverlay';
 import { QuestionResult as QuestionResultComponent } from '../../components/questions/QuestionResult';
@@ -303,18 +304,13 @@ export default function PlayerGameScreen(): React.ReactElement {
     const roomCode = game?.roomCode ?? '';
     const questionnaire = game?.questionnaire;
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <Banner title="Lobby" subtitle={questionnaire?.name || undefined} onBackPress={handleLeave} />
         <LinearGradient colors={[Colors.sun, Colors.melon]} style={styles.gradient}>
           <View style={styles.sparkle1} pointerEvents="none"><Sparkle size={28} color={Colors.cream} /></View>
           <View style={styles.sparkle2} pointerEvents="none"><Sparkle size={18} color={Colors.ink} /></View>
           <View style={styles.lobbyHeader}>
-            {questionnaire?.name ? <Text style={styles.lobbyGameName}>{questionnaire.name}</Text> : null}
-            <Text style={styles.codeLabel}>Room code</Text>
-            {roomCode.length > 0 && (
-              <StickerCard shadowOffset={5} borderRadius={16} style={styles.codeStickerWrapper}>
-                <Text style={styles.codeText}>{roomCode}</Text>
-              </StickerCard>
-            )}
+            {roomCode.length > 0 && <QRCodeDisplay roomCode={roomCode} />}
             <View style={styles.waitingRow}>
               <ActivityIndicator size="small" color={Colors.ink} />
               <Text style={styles.waitingText2}>Waiting for host…</Text>
@@ -343,8 +339,9 @@ export default function PlayerGameScreen(): React.ReactElement {
 
   // ── Join view (default) ───────────────────────────────────────────────
   return (
-    <ScreenContainer>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScreenContainer noPadding>
+      <Banner title="Join Game" onBackPress={handleDone} />
+      <KeyboardAvoidingView style={[styles.flex, styles.joinPad]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.joinInner} keyboardShouldPersistTaps="handled">
           <View style={styles.fields}>
             <TextInput
@@ -410,6 +407,7 @@ const FRAME = 220;
 const styles = StyleSheet.create({
   // Join
   flex:             { flex: 1 },
+  joinPad:          { paddingHorizontal: 0 },
   joinInner:        { flexGrow: 1, padding: Spacing.md, gap: Spacing.lg },
   fields:           { gap: Spacing.md },
   joinButton:       { marginTop: 'auto' as unknown as number },

@@ -75,6 +75,13 @@ export class BlindTasterServer extends Party.Server<Env> {
     await this.ctx.storage.deleteAll();
   }
 
+  // Bump the 24h idle-cleanup alarm forward. Don't override a pending pause alarm —
+  // the host-disconnect timeout is more urgent and uses the same single alarm slot.
+  private bumpCleanupAlarm(): void {
+    if (this.s.phase === GamePhase.Paused) return;
+    void this.ctx.storage.setAlarm(Date.now() + 24 * 60 * 60 * 1000);
+  }
+
   // Connection lifecycle ─────────────────────────────────────────────────────
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext): void {
@@ -106,7 +113,6 @@ export class BlindTasterServer extends Party.Server<Env> {
       if (this.s.phase === GamePhase.Paused && this.s.pausedFromPhase !== null) {
         this.s.phase = this.s.pausedFromPhase;
         this.s.pausedFromPhase = null;
-        void this.ctx.storage.deleteAlarm();
         void this.persist();
         this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
       } else {
@@ -120,6 +126,7 @@ export class BlindTasterServer extends Party.Server<Env> {
       if (this.s.phase === GamePhase.GameOver) {
         this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
       }
+      this.bumpCleanupAlarm();
       return;
     }
 
@@ -135,11 +142,13 @@ export class BlindTasterServer extends Party.Server<Env> {
       if (this.s.phase === GamePhase.GameOver) {
         this.send(conn, { type: 'game_ended', payload: buildGameResults(this.s) });
       }
+      this.bumpCleanupAlarm();
       return;
     }
 
     // Fresh player — pending until admitted.
     conn.setState({ role: 'pending' } satisfies ConnState);
+    this.bumpCleanupAlarm();
   }
 
   onMessage(sender: Party.Connection, message: Party.WSMessage): void {
@@ -151,15 +160,18 @@ export class BlindTasterServer extends Party.Server<Env> {
     } catch { return; }
 
     const cs = sender.state as ConnState | null;
-    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','kick_player','end_game']);
+    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','kick_player','end_game','lobby_init']);
     const PLAYER_ONLY  = new Set(['submit_answers', 'sync_state']);
     const PENDING_ONLY = new Set(['request_join']);
     if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
     if (PLAYER_ONLY.has(msg.type)  && cs?.role !== 'player')  return;
     if (PENDING_ONLY.has(msg.type) && cs?.role !== 'pending') return;
 
+    this.bumpCleanupAlarm();
+
     switch (msg.type) {
       case 'request_join':    return this.handleRequestJoin(sender, msg.payload.name);
+      case 'lobby_init':      return this.handleLobbyInit(msg.payload.questionnaire);
       case 'admit_player':    return this.handleAdmit(msg.payload.playerId);
       case 'deny_player':     return this.handleDeny(msg.payload.playerId);
       case 'start_game':      return this.handleStartGame(msg.payload.questionnaire, msg.payload.rounds);
@@ -182,9 +194,10 @@ export class BlindTasterServer extends Party.Server<Env> {
         if (c.id !== conn.id && (c.state as ConnState | null)?.role === 'host') { stillHasHost = true; break; }
       }
       if (stillHasHost) return;
-      if (this.s.phase === GamePhase.Lobby) {
-        this.handleEndGame();
-      } else if (this.s.phase !== GamePhase.GameOver && this.s.phase !== GamePhase.Paused && this.s.phase !== GamePhase.Abandoned) {
+      // Lobby: no auto-abandon. Host can reconnect anytime; the room stays open
+      // until they explicitly abandon. Hibernation + DO eviction cap idle cost.
+      if (this.s.phase === GamePhase.Lobby) return;
+      if (this.s.phase !== GamePhase.GameOver && this.s.phase !== GamePhase.Paused && this.s.phase !== GamePhase.Abandoned) {
         this.s.pausedFromPhase = this.s.phase;
         this.s.phase = GamePhase.Paused;
         void this.persist();
@@ -206,12 +219,43 @@ export class BlindTasterServer extends Party.Server<Env> {
   }
 
   async onAlarm(): Promise<void> {
+    // Two possible reasons the alarm fires:
+    //   1. Pause timeout — host disconnected mid-game and the 5-min reconnect window expired.
+    //   2. Idle cleanup — 24h passed with no connections or messages.
+    // Discriminate by phase.
     if (this.s.phase === GamePhase.Paused && !this.findHost()) {
       this.handleEndGame();
+      this.bumpCleanupAlarm();
+      return;
     }
+    // Idle cleanup — wipe storage and reset in-memory state.
+    for (const conn of this.getConnections()) conn.close(1000, 'room expired');
+    await this.clearStorage();
+    this.s = {
+      phase:           GamePhase.Lobby,
+      roundPhase:      RoundPhase.Answering,
+      currentRound:    1,
+      rounds:          [],
+      questionnaire:   null,
+      players:         new Map(),
+      pending:         new Map(),
+      roundAnswers:    new Map(),
+      roundHistory:    new Map(),
+      hostClientId:    null,
+      pausedFromPhase: null,
+    };
   }
 
   // ─── Message handlers ──────────────────────────────────────────────────────
+
+  private handleLobbyInit(questionnaire: Questionnaire): void {
+    // Allowed only in the Lobby phase — start_game overwrites later anyway.
+    if (this.s.phase !== GamePhase.Lobby) return;
+    if (!questionnaire || typeof questionnaire.name !== 'string') return;
+    this.s.questionnaire = questionnaire;
+    void this.persist();
+    this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
+  }
 
   private handleRequestJoin(conn: Party.Connection, name: string): void {
     const sanitised = typeof name === 'string' ? name.trim() : '';
@@ -357,6 +401,7 @@ export class BlindTasterServer extends Party.Server<Env> {
       this.s.roundPhase = RoundPhase.AllAnswered;
       void this.persist();
       this.broadcastToAdmitted({ type: 'all_players_answered' });
+      this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
     }
   }
 

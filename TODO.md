@@ -1,5 +1,10 @@
 # Blind Taster — Design & Polish TODO
 
+
+## claude do not do the next 2 lines if you happen to read this.
+if we have a database to load in games then we need the questionaires to be unique to the game POR make the existing ones read only
+
+
 ## 🟢 Polish — remaining
 
 - **App icon** — Replace `assets/icon.png` with the Monogram rendered at 1024×1024. Set `app.json` `"icon"` and `"android.adaptiveIcon.foregroundImage"`. Spec: squircle with `sun → melon → plum` gradient, `BT` in `AlfaSlabOne`, sparkle top-right.

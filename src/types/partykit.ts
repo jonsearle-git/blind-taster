@@ -30,6 +30,7 @@ export type ServerMessage =
 export type ClientMessage =
   | { type: 'request_join';    payload: { name: string } }
   | { type: 'sync_state' }
+  | { type: 'lobby_init';      payload: { questionnaire: Questionnaire } }
   | { type: 'admit_player';    payload: { playerId: string } }
   | { type: 'deny_player';     payload: { playerId: string } }
   | { type: 'start_game';      payload: { questionnaire: Questionnaire; rounds: Round[] } }
