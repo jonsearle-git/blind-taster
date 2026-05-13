@@ -39,7 +39,7 @@ export default function HomeScreen(): React.ReactElement {
 
   const phase          = state.gameState?.phase;
   const activePhase    = phase !== undefined && phase !== GamePhase.GameOver;
-  const isActivePlayer = state.localPlayerId !== null && activePhase;
+  const isActivePlayer = state.localPlayerId !== null && activePhase && !state.isKicked;
   const isActiveHost   = state.localPlayerId === null && activePhase;
   const hasActiveGame  = isActiveHost || isActivePlayer;
 

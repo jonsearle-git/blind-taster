@@ -13,10 +13,10 @@ type Props = {
 
 export function KickedOverlay({ visible, title = 'Removed from Game', message = 'You have been removed from this game by the host.' }: Props): React.ReactElement {
   const navigation     = useNavigation();
-  const { disconnect } = useGameContext();
+  const { leaveGame } = useGameContext();
 
   function handleBackToMenu(): void {
-    disconnect();
+    leaveGame();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Home' }] }));
   }
 
