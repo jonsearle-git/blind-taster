@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Blind Taster — App Screens</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fraunces:wght@400;700;900&family=DM+Sans:wght@400;500;700;900&family=Lilita+One&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin:0; padding:0; background:#f0eee9; font-family: 'DM Sans', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tt-theme.jsx"></script>
+<script type="text/babel" src="tt-logo.jsx"></script>
+<script type="text/babel" src="bt-chrome.jsx"></script>
+<script type="text/babel" src="bt-screens-host.jsx"></script>
+<script type="text/babel" src="bt-screens-game.jsx"></script>
+<script type="text/babel" src="bt-screens-player.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function App() {
+  const p = TT_PALETTES['Candy Pop'];
+  const f = TT_FONTS['Fraunces + DM'];
+
+  // Phone artboard standard size
+  const PW = 340, PH = 726;
+  const Phone = ({ children }) => (
+    <div style={{ transform: 'scale(0.845)', transformOrigin: 'top left' }}>
+      <IOSDevice width={402} height={860}>{children}</IOSDevice>
+    </div>
+  );
+
+  return (
+    <DesignCanvas>
+
+      {/* ── FLOW 1: HOSTING ────────────────────────────────────── */}
+      <DCSection id="host-setup" title="Host · Setup flow" subtitle="Home → Host menu → Questionnaires → New / Edit">
+
+        <DCArtboard id="home" label="01 · Home (splash)" width={PW} height={PH}>
+          <Phone><BTHome palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="host-menu" label="02 · Host a Game" width={PW} height={PH}>
+          <Phone><BTHostMenu palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="qs-list" label="03 · Questionnaires list" width={PW} height={PH}>
+          <Phone><BTQuestionnairesList palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="qs-new" label="04 · New Questionnaire" width={PW} height={PH}>
+          <Phone><BTNewQuestionnaire palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="qs-choose" label="05 · Choose Type modal" width={PW} height={PH}>
+          <Phone><BTChooseType palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="qs-edit" label="06 · Edit Questionnaire" width={PW} height={PH}>
+          <Phone><BTEditQuestionnaire palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="q-edit" label="07 · Edit Question (MCQ)" width={PW} height={PH}>
+          <Phone><BTEditQuestion palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+      </DCSection>
+
+      {/* ── FLOW 2: GAME ───────────────────────────────────────── */}
+      <DCSection id="games" title="Host · Games" subtitle="Games list → Info → New game → Set round answers">
+
+        <DCArtboard id="games-list" label="08 · Games list" width={PW} height={PH}>
+          <Phone><BTGamesList palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="games-info" label="09 · Game info modal" width={PW} height={PH}>
+          <Phone><BTGameInfoModal palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="games-new" label="10 · New Game" width={PW} height={PH}>
+          <Phone><BTNewGame palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="host-set" label="11 · Set round answers" width={PW} height={PH}>
+          <Phone><BTHostSetAnswers palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+      </DCSection>
+
+      {/* ── FLOW 3: LIVE GAME ──────────────────────────────────── */}
+      <DCSection id="live" title="Live game" subtitle="Host lobby → joining → monitoring round">
+
+        <DCArtboard id="lobby" label="12 · Host lobby" width={PW} height={PH}>
+          <Phone><BTHostLobby palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="lobby-joining" label="13 · Player joining" width={PW} height={PH}>
+          <Phone><BTHostLobby palette={p} fonts={f} withJoiners/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="host-monitor" label="14 · Host monitoring round" width={PW} height={PH}>
+          <Phone><BTHostMonitor palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+      </DCSection>
+
+      {/* ── FLOW 4: PLAYER ─────────────────────────────────────── */}
+      <DCSection id="player" title="Player · Round + Results" subtitle="In-game flow for a player">
+
+        <DCArtboard id="player-round-a" label="15 · Round · MCQ" width={PW} height={PH}>
+          <Phone><BTPlayerRound palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="player-round-b" label="16 · Round · Tags + Price + Slider" width={PW} height={PH}>
+          <Phone><BTPlayerTagsPrice palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="player-results" label="17 · Round results (reveal)" width={PW} height={PH}>
+          <Phone><BTPlayerResults palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+        <DCArtboard id="end-game" label="18 · End of game" width={PW} height={PH}>
+          <Phone><BTEndGame palette={p} fonts={f}/></Phone>
+        </DCArtboard>
+
+      </DCSection>
+
+      {/* ── DIALOGS ────────────────────────────────────────────── */}
+      <DCSection id="dialogs" title="Dialogs" subtitle="Reusable confirm dialog · default, danger, and success variants">
+
+        <DCArtboard id="dialog-default" label="A · Default (OK + Cancel)" width={PW} height={PH}>
+          <Phone>
+            <BTDialog
+              palette={p} fonts={f}
+              title="Leave the game?"
+              message="You'll lose your progress for this round. Your crew can keep playing without you."
+              okLabel="Leave"
+              cancelLabel="Stay"
+              behind={<BTPlayerRound palette={p} fonts={f}/>}
+            />
+          </Phone>
+        </DCArtboard>
+
+        <DCArtboard id="dialog-danger" label="B · Danger (Delete)" width={PW} height={PH}>
+          <Phone>
+            <BTDialog
+              palette={p} fonts={f}
+              intent="danger"
+              title="Delete this questionnaire?"
+              message="“Beer (copy)” will be removed. This can't be undone."
+              okLabel="Delete"
+              cancelLabel="Keep"
+              behind={<BTQuestionnairesList palette={p} fonts={f}/>}
+            />
+          </Phone>
+        </DCArtboard>
+
+        <DCArtboard id="dialog-success" label="C · Success (Save)" width={PW} height={PH}>
+          <Phone>
+            <BTDialog
+              palette={p} fonts={f}
+              intent="success"
+              title="Save your changes?"
+              message="Your questionnaire will be locked once you save. You can duplicate it later to edit."
+              okLabel="Save"
+              cancelLabel="Cancel"
+              behind={<BTEditQuestionnaire palette={p} fonts={f}/>}
+            />
+          </Phone>
+        </DCArtboard>
+
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

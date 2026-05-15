@@ -1,247 +1,294 @@
-# Handoff: Blind Taster — Splash Screen, Logo & Brand System
+# Handoff: Blind Taster — Full App Redesign
 
 ## Overview
 
-**Blind Taster** is a collaborative party game for taste-testing food and wine. Players join a lobby, then each round answers a fun questionnaire about a numbered sample (e.g. "Glass C") and locks in their answers — flavors picked up, vibe rating, etc. — before everyone reveals.
+**Blind Taster** is a collaborative party game for taste-testing food and wine. A host creates a *questionnaire* (the questions players will answer about each sample), bundles questionnaires into *games* (a number of rounds), then hosts a live session where players join via QR/code, answer each round's questions, and see their score against the host's answers.
 
-This handoff covers the **brand system** (logo, palette, type, motifs, components) and the **splash screen** the user selected — *Tickertape* — plus reference designs for the lobby and round questionnaire screens.
+This handoff is a **complete redesign of every screen in the app** in the Blind Taster brand system. Your existing app is functionally close — this brings it onto the design system end-to-end so every screen looks like part of the same product.
 
 ## About the Design Files
 
-The files in `reference/` are **HTML/JSX design references** built as React prototypes inside a self-contained Babel-in-the-browser environment. They are not production code.
+The files in `reference/` are **React/JSX design references** built as Babel-in-the-browser prototypes. They are *not* production code.
 
-Your task is to **recreate these designs in the project's target codebase** (React Native, SwiftUI, Flutter, or web — whichever is being used) using its established component library, theming system, and patterns. Treat the JSX as a precise specification of layout, colors, type, and component anatomy — not as files to copy in.
-
-If no codebase exists yet, **React Native + Expo** is recommended for this project (mobile-first party game, real-time multiplayer-friendly).
+Your job is to **rebuild each screen in the existing target codebase** (React Native, SwiftUI, etc.) so it matches the reference pixel-for-pixel — using your existing component libraries, theming, and state management. Don't ship the HTML. Treat the JSX as a precise spec of layout, color, type, and component anatomy.
 
 ## Fidelity
 
-**High-fidelity (hifi).** Colors, typography, radii, shadows, spacing and component anatomy are final. Recreate pixel-perfectly.
+**High-fidelity.** Every color, radius, shadow, font size, spacing value, and component anatomy is final. Recreate exactly.
 
 ---
 
-## Design Tokens
+## Brand System (unchanged from previous handoff)
 
-### Colors — "Candy Pop" Palette
+### Palette — "Candy Pop"
 
-| Token  | Hex       | Use                                        |
-|--------|-----------|--------------------------------------------|
-| cream  | `#FFF4E0` | Default background, light text on dark     |
-| sun    | `#FFD166` | Accent, highlights, secondary CTAs         |
-| melon  | `#EF476F` | Primary CTA, alert/attention               |
-| mint   | `#06D6A0` | Success, ready states, secondary accent    |
-| ocean  | `#118AB2` | Tertiary accent, info, slider tracks       |
-| plum   | `#3D1766` | Deep accent, splash background             |
-| ink    | `#2B1055` | All borders, all text on light backgrounds |
+| Token  | Hex       |
+|--------|-----------|
+| cream  | `#FFF4E0` |
+| sun    | `#FFD166` |
+| melon  | `#EF476F` |
+| mint   | `#06D6A0` |
+| ocean  | `#118AB2` |
+| plum   | `#3D1766` |
+| ink    | `#2B1055` |
 
-Borders and text **always** use `ink` (`#2B1055`) for the chunky "sticker" outline aesthetic. Never use pure black.
+All borders & text on light backgrounds use **ink** (`#2B1055`). Never pure black.
 
 ### Typography — "Fraunces + DM"
 
-Load via Google Fonts: `Alfa Slab One`, `Fraunces` (400, 700, 900), `DM Sans` (400, 500, 700, 900).
+Load via Google Fonts: `Alfa Slab One`, `Fraunces` (400/700/900), `DM Sans` (400/500/700/900).
 
-| Role    | Family                                         | Use                              |
-|---------|------------------------------------------------|----------------------------------|
-| display | `'Alfa Slab One', 'Fraunces', serif`           | Logo wordmark, hero numerals     |
-| heading | `'Fraunces', serif` (weight 700–900)           | Question titles, screen titles   |
-| body    | `'DM Sans', system-ui, sans-serif`             | All body text, labels, buttons   |
+| Role    | Stack                                          |
+|---------|------------------------------------------------|
+| display | `'Alfa Slab One', 'Fraunces', serif`           |
+| heading | `'Fraunces', serif` (weight 700–900)           |
+| body    | `'DM Sans', system-ui, sans-serif`             |
 
-Body labels are **uppercase + letter-spacing 1–3px + weight 800** for the "ticket stub" feel.
-
-### Card Feel — "Sticker"
-
-Every card, chip, button and input uses the same recipe:
+### Sticker recipe (use everywhere)
 
 ```
-border-radius: 28px
-border: 3px solid #2B1055   (ink)
-box-shadow: 6px 6px 0 #2B1055   (no blur — hard offset)
+border: 2.5px solid #2B1055
+border-radius: 18–28 (cards), full (pills)
+box-shadow: Nx Nx 0 #2B1055    (N = 3 small · 5 medium · 6–8 hero)
 ```
 
-Smaller elements (chips, pills) scale down: `2.5px` border, `3px 3px 0` shadow.
+Hard, no-blur shadows — the candy "sticker" look. Never use soft drop shadows.
 
-### Spacing scale
+### Spacing
 
-`4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 · 72` (px). Screen-edge padding is `16–20`. Generous: candy-pop wants air around stickers.
+`4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 · 72` px. Screen-edge padding is `16–20`.
 
-### Radii
+### Logo
 
-| Element              | Radius |
-|----------------------|--------|
-| Pill buttons         | full   |
-| Cards                | 28     |
-| Inputs / chips       | full   |
-| App icon (squircle)  | 28% of side |
-| Monogram badge       | 28% of side |
-
-### Shadows
-
-There is only **one shadow style**: hard, no blur, ink-colored.
-`Nx Nx 0 #2B1055` where N is `3` (small), `5` (medium), `6–8` (large CTAs/cards).
+- **Monogram** — squircle badge, radius 28% of side, radial gradient `sun → melon → plum`, ink-stroked "BT" rotated -6°, sparkle top-right. Used as the app icon and in headers.
+- **Lockup** — Monogram + "Blind Taster" wordmark. Stacked or horizontal. `Alfa Slab One`, weight 900, uppercase, letter-spacing ~-0.015em, line-height 0.88 stacked.
 
 ---
 
-## Logo System
+## Components — build these first
 
-The logo is a **monogram + wordmark lockup**.
+All in `components/brand/`. Every one takes a `palette` and (where relevant) `fonts` prop.
 
-### Monogram (also the app icon)
+### Primitives
+| Component | Purpose | Reference |
+|-----------|---------|-----------|
+| `Monogram` | TT squircle badge (see brand system) | `tt-logo.jsx` |
+| `Lockup` | Monogram + wordmark, stacked or horizontal | `tt-logo.jsx` |
+| `Sparkle` | 4-point star SVG | `tt-theme.jsx` |
+| `StickerCard` | Cream rectangle with ink border + offset shadow | `bt-chrome.jsx → BTCard` |
+| `PillButton` | Primary CTA — sticker + gloss highlight | `bt-chrome.jsx → BTCta` |
+| `OutlineButton` | Secondary CTA — sticker, cream fill | `bt-chrome.jsx → BTOutlineCta` |
+| `TextInput` | Pill-shaped input with sticker border | `bt-chrome.jsx → BTInput` |
+| `Chip` | Selectable pill — outline by default, filled when on | `bt-chrome.jsx → BTChip` |
+| `StatusPill` | Small uppercase badge (sun/mint/melon) | `bt-chrome.jsx → BTPill` |
+| `Avatar` | Circle with initial, palette-color background | `bt-chrome.jsx → BTAvatar` |
+| `Dialog` | Modal confirm dialog with title, message, Cancel + OK | `bt-chrome.jsx → BTDialog` |
 
-A circular squircle badge with a glossy radial gradient and the letters **"TT"** in chunky display type, rotated -6°, with a small 4-point sparkle in the upper right.
+### Chrome
+| Component | Purpose | Notes |
+|-----------|---------|-------|
+| `AppBar` | Top bar with circular sticker back-button + centered Fraunces title | Title 22px / weight 800. Trailing slot for actions. |
+| `SectionLabel` | Tiny uppercase caption used everywhere as a section header | DM Sans 12px / weight 900 / letter-spacing 2 / ~70% opacity |
+| `SettingsFab` | Round ocean-blue branded settings cog (was grey) | 48px circle, ocean fill, ink border, 3px offset shadow, white gear icon |
 
-Anatomy (size = `S`):
-- Outer shape: rounded rect, radius `S × 0.28`
-- Background: `radial-gradient(circle at 30% 26%, #FFD166, #EF476F 60%, #3D1766)`
-- Border: `max(3, S × 0.025)px solid #2B1055`
-- Inner shadow (gloss): `inset 0 -S×0.10px S×0.14px rgba(0,0,0,.25), inset 0 S×0.12px S×0.12px rgba(255,255,255,.35)`
-- Drop shadow: `0 S×0.08px S×0.16px rgba(0,0,0,.2)`
-- Letters: "TT", `Alfa Slab One`, color `#FFF4E0`, stroke `S×0.025px #2B1055`, font-size `S×0.52`, rotation `-6deg`
-- Sparkle: 4-point star, color `#FFF4E0`, size `S×0.14`, position top: `S×0.12`, right: `S×0.14`
+**Notes on the current app's chrome** (from the screenshots): the grey circular settings cog and the grey circular back chevron are placeholder. Replace globally with `SettingsFab` (ocean) and `AppBar`'s built-in back button (cream sticker with offset shadow). The plain Fraunces titles need the `AppBar` wrapper so they sit centered with proper top padding.
 
-### Lockup variants
+### Button gloss highlight (don't skip this)
 
-| Variant       | Layout                                            | Use                                  |
-|---------------|---------------------------------------------------|--------------------------------------|
-| horizontal    | Monogram left, "BLIND / TASTER" stacked right     | Headers, top of screens              |
-| stacked       | Monogram top, "BLIND TASTER" single line below    | Splash, marketing                    |
-| mono-dark     | Horizontal, all `#2B1055` text, monogram in color | Headers on light backgrounds         |
-| mono-light    | Horizontal, all `#FFF4E0` text, monogram in color | Headers on dark backgrounds          |
-
-The monogram **keeps its color gradient** in mono variants — only the wordmark color changes.
-
-Wordmark: `Alfa Slab One`, weight 900, **uppercase**, letter-spacing approx `-0.015em`, line-height `0.88` for the stacked rendering.
-
----
-
-## The Splash Screen — "Tickertape" (selected)
-
-Full-bleed plum background with diagonal stripes of repeating wordmark text, and a centered sticker card holding the logo lockup and a CTA.
-
-### Layout (402 × 874 iOS viewport)
-
-- **Background**: solid `#3D1766` (plum)
-- **Diagonal stripes**: 5 horizontal bands rotated `-12°`, each `width: 180%`, `height: 70px`, positioned `left: -40px`, with these top values & colors:
-
-  | Top (px) | Stripe color | Text color | Text content                  |
-  |----------|--------------|------------|--------------------------------|
-  | 80       | `#FFD166`    | `#2B1055`  | `BLIND TASTER ✦` (×10)         |
-  | 170      | `#06D6A0`    | `#2B1055`  | `SIP SCORE SCANDAL ✦` (×10)    |
-  | 260      | `#EF476F`    | `#FFF4E0`  | `BLIND TASTER ✦` (×10)         |
-  | 580      | `#118AB2`    | `#FFF4E0`  | `SNIFF SWIRL SETTLE ✦` (×10)   |
-  | 670      | `#FFD166`    | `#2B1055`  | `BLIND TASTER ✦` (×10)         |
-
-  Each repeat: `Alfa Slab One`, 38px, weight 900, letter-spacing 2, uppercase, with `marginRight: 18px` between repeats.
-
-- **Centered sticker card** (rotated `-3deg`, positioned at viewport center):
-  - Background `#FFF4E0` (cream), border `3px solid #2B1055`, radius `32px`, shadow `8px 8px 0 #2B1055`
-  - Padding `28px 28px 24px`
-  - Inside, vertical flex with `gap: 14px`:
-    - Stacked TTLockup (monogram + "Blind Taster" wordmark), size factor `0.65`
-    - Pill button: "TAP TO START" — `#EF476F` background, `#FFF4E0` text, `3px solid #2B1055` border, `6px 6px 0 #2B1055` shadow, font `Alfa Slab One`, height 52, padding `0 28px`, font-size 17, uppercase, with a white inner highlight strip on top (gloss)
-
-- **Corner sparkles**:
-  - Top-right `(top: 30, right: 30)`: 4-point star, 40px, `#FFD166`
-  - Bottom-left `(bottom: 60, left: 30)`: 4-point star, 28px, `#06D6A0`
-
-### Sparkle SVG
+Every `PillButton` has an absolutely-positioned highlight inside it:
 
 ```jsx
-<svg width={size} height={size} viewBox="0 0 24 24">
-  <path d="M12 0 C12 7, 17 12, 24 12 C17 12, 12 17, 12 24 C12 17, 7 12, 0 12 C7 12, 12 7, 12 0 Z" fill={color} />
-</svg>
+<span style={{
+  position: 'absolute', top: 4, left: '10%', right: '10%', height: '40%',
+  borderRadius: 999,
+  background: 'linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0))',
+  pointerEvents: 'none',
+}}/>
 ```
 
-### Pill button anatomy
+This is what makes them feel candy/glossy. The current implementation has it on some buttons but missing on others (e.g. the disabled "Reveal Answers" / "Next Round" buttons should still keep their outline + reduced opacity, no gloss). Be consistent.
 
-```
-height: 52px           (lg: 68; xl: 84; sm: 36)
-padding: 0 28px        (proportional to height)
-border: 3px solid #2B1055
-border-radius: full
-box-shadow: 6px 6px 0 #2B1055
-font: Alfa Slab One, weight 900, size 17, uppercase, letter-spacing 0.5
-text color: #FFF4E0 on melon/ink, #2B1055 on sun/mint/cream
-```
+### Disabled state
 
-**Gloss highlight**: an absolutely-positioned `<span>` inside the button: `top: 4, left: 10%, right: 10%, height: 40%`, `border-radius: 999`, `background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0))`. Required — gives the buttons their glossy candy feel.
+Disabled buttons drop the offset shadow, reduce both fill and border to ~45% opacity. Cursor stays default. Currently the app shows them just "washed out" — keep the sticker outline visible, just at reduced opacity, and remove the gloss + shadow.
+
+### Dialogs
+
+Reference: `BTDialog` in `bt-chrome.jsx`. Use for any confirm/cancel decision — leave the game, delete a questionnaire, save changes, etc.
+
+Anatomy:
+- Backdrop: `rgba(43, 16, 85, 0.55)` (plum at 55%) over the dimmed (opacity 0.3) screen content behind.
+- Card: cream fill, **3px** ink border, radius `26`, shadow `8px 8px 0 #2B1055`, rotated `-1°` to feel sticker-like. Width `296`, padding `22px 22px 20px`.
+- Icon tile (top-left of the card body): 54×54 rounded square, palette-colored, ink border + 3px offset shadow, rotated `-3°`. Glyph is a single display-font character.
+- Title: Fraunces 22 / weight 800.
+- Message: DM Sans 14 / weight 500 / opacity 0.75.
+- Buttons: equal-width row of `OutlineButton` (Cancel) + `PillButton` (OK), both size `md` (52px). Cancel always on the left.
+
+Three intents:
+
+| Intent    | Icon tile  | OK button | Use for                                  |
+|-----------|------------|-----------|------------------------------------------|
+| `default` | sun + "?"  | melon     | Generic confirm (leave game, exit form)  |
+| `danger`  | melon + "!"| melon     | Destructive (delete questionnaire/game)  |
+| `success` | mint + "✓" | mint      | Save / commit                            |
+
+Three example screens are in the canvas under the "Dialogs" section — artboards 19A/B/C in `Blind Taster App.html`.
+
+#### Motion
+- Backdrop fades in 180ms.
+- Card scales `0.92 → 1` over 240ms with `easeOutBack`. Reverse on dismiss.
+- Tapping the backdrop = same as Cancel.
+- `Esc` (web) / hardware back (Android) = Cancel.
 
 ---
 
-## Other Screens (reference)
+## Screens
 
-### Round / Questionnaire (`tt-screens.jsx`)
-Header with round counter (sticker pill, "3 of 7") and timer pill, then a "GLASS C" sample headline (display font, rotated -2°, with text-stroke + drop shadow), a question card with flavor chips (selectable, melon highlight when on), a rating slider (ocean card, sun-filled track, melon thumb with white "7"), and a primary CTA at the bottom.
+Each screen has a reference component in the JSX files. The list below is the implementation order with the most important call-outs. **Always open the JSX reference for the exact anatomy** — the notes here are the *intent*, the JSX is the *truth*.
 
-### Lobby
-Sun→melon gradient background, room code "BRIE7" displayed in a sticker card, then a player list with circular avatars and "READY" / "POURING…" status pills.
+### Flow 1 — Host setup
 
-### Theme Sheet
-A static brand reference page with palette swatches, type samples, motifs (stars, flowers, blobs), buttons, and card feels.
+#### 01. Home / Splash
+Reference: `BTHome` in `bt-screens-host.jsx`.
+
+Plum background with 4 diagonal "tickertape" stripes of repeating wordmark text (rotated -12°), and a centered sticker card (tilted -2°) holding: Monogram → "BLIND TASTER" wordmark → tagline pill → Host a Game (primary) → Join a Game (outline). Two corner sparkles.
+
+#### 02. Host a Game (menu)
+Reference: `BTHostMenu`. Replaces the screen with two stacked pill buttons.
+
+Big monogram + Fraunces title at top with a one-line description. Two large sticker tiles below: **Questionnaires** (melon fill, cream icon-tile, "Build your taste-test forms") and **Games** (mint fill, "Pick a game and start hosting"). Each tile is a full-width `StickerCard` with a 56px white icon-tile on the left.
+
+#### 03. Questionnaires list
+Reference: `BTQuestionnairesList`. Replaces the bare list rows.
+
+Each row is a `StickerCard` (radius 20, 4px shadow) with: 44×44 palette-colored letter tile · name · "6 questions · Locked" caption (uppercase mini-cap). The lock/duplicate/delete buttons become three small sticker icon-buttons (cream for duplicate, melon for delete). Top action is the "+ Create New" outline pill.
+
+#### 04. New Questionnaire
+Reference: `BTNewQuestionnaire`. The "no questions yet" empty state gets a sparkle illustration, the Save button gets proper primary styling.
+
+#### 05. Choose Question Type modal
+Reference: `BTChooseType`. Replace the plain list with a bottom-sheet (top-rounded, ink-bordered) holding 5 sticker rows, each with a colored icon tile (melon / sun / mint / ocean / plum), the type label, and a chevron.
+
+#### 06. Edit Questionnaire
+Reference: `BTEditQuestionnaire`. The current Q1/Q2/Q3 cards become sticker cards with: a colored "Q1" letter tile (melon/sun/mint/ocean/plum, rotating through the palette), the question type as an uppercase mini-cap above the question text. Delete button becomes a small melon sticker.
+
+#### 07. Edit Question (Multiple Choice — Text)
+Reference: `BTEditQuestion`. The yellow rectangle for question type becomes a proper `StatusPill` (sun). Question text sits in its own sticker card. Options sit in a second sticker card with a count badge (mint), each option an outline-pill with a melon delete button. "+ Add Option" is a dashed-border ghost button.
 
 ---
 
-## Components to Build
+### Flow 2 — Games
 
-| Component       | Purpose                                                             |
-|-----------------|---------------------------------------------------------------------|
-| `Monogram`      | Round/squircle TT badge — used as app icon and inside logo lockup   |
-| `Lockup`        | Monogram + "Blind Taster" wordmark, with `horizontal`/`stacked` and `dark`/`light`/`color` tones |
-| `StickerCard`   | The cream rectangle with ink border + offset shadow                 |
-| `PillButton`    | The candy CTA with gloss highlight and offset shadow                |
-| `Sparkle`       | 4-point star SVG                                                    |
-| `Chip`          | Selectable rounded chip — outline by default, filled when selected  |
-| `RatingSlider`  | Sun-filled track, melon thumb showing the value                     |
-| `RoomCodeBlock` | Big display-font code in a sticker rectangle                        |
+#### 08. Games list
+Reference: `BTGamesList`. Same treatment as questionnaires list. Row layout: letter-tile · name + caption · "Answers" outline-pill · "Host ▶" melon CTA pill. "Edit" in the top-right becomes a melon `StatusPill`.
 
-All take a single `palette` prop (the tokens above) and a `size` scale where appropriate.
+#### 09. Game info modal
+Reference: `BTGameInfoModal`. The current beer-night modal becomes a sticker card (tilted -1°) with: caption "BEER · 3 ROUNDS" (melon section-label) · name "Beer Night" (Fraunces) · letter-tile in corner · 3 round rows each in a mini sticker chip with a numbered tile · big "DONE" primary CTA.
+
+#### 10. New Game
+Reference: `BTNewGame`. Form inputs get sticker styling. Number-of-rounds gets a chunky stepper: `−` (cream) · `3` (cream readout) · `+` (mint), all 50px sticker circles. The "CONTINUE →" button stays melon primary.
+
+#### 11. Set Round Answers (host setting correct answers per round)
+Reference: `BTHostSetAnswers`. This is the host's view of the questionnaire while preparing a round — they set the sample name + the correct answer for each question. The sample input gets its own plum sticker card. Each question is in its own card with mint-fill chips marking the selected (correct) answer.
+
+Bottom bar has `← Back` outline + `Next →` melon side-by-side.
 
 ---
 
-## Interactions & Behavior
+### Flow 3 — Live game
 
-### Splash → New Game
-- Tap "TAP TO START" → navigate to **Lobby** (create-or-join sheet first if you want)
-- Subtle entrance: background stripes fade in from off-screen left in sequence (50ms stagger), then the sticker card scales in from `0.7` with a slight bounce (300ms, easeOutBack)
+#### 12. Host Lobby (empty)
+Reference: `BTHostLobby` (without `withJoiners`). 
 
-### Lobby
-- Real-time presence: as players connect, their card slides in from below (200ms)
-- "Ready" pill toggles per player
-- Host's "Start the round" CTA enables only when all players are ready
+Top: cream bar with the game label (e.g. "BEER · HOSTING" / "Beer Night") and meatballs menu. Body: sun→melon gradient with sparkles. Centered: a fake QR code on a cream sticker card · "ROOM CODE" caption · the code in a chunky display-font sticker block · "TAP TO COPY" hint. Below: "The crew (0)" heading, "No players yet" placeholder. Footer: cream bar with disabled "Start Game" primary.
 
-### Round / Questionnaire
-- Chip selection is **multi-select**: tap to toggle on/off (filled vs outline)
-- Slider drag updates the value in the melon thumb live
-- "LOCK IT IN" pulses when all questions are answered; tapping submits and navigates to a "waiting on others" state, then to results when everyone is in
-- Timer counts down from a per-round budget; when ≤10s, timer pill flashes melon
+#### 13. Player joining
+Reference: `BTHostLobby` with `withJoiners`. Adds a "Waiting to Join" section above "The crew": a player row card with name · mint ✓ check (admit) · melon ✕ (reject) buttons.
 
-### General
-- All buttons: `:active` translates by `(2px, 2px)` and reduces shadow to `4px 4px 0` for a "press" feel
-- Card hover/press (touch): scale to `0.98`, shadow shrinks
-- Use spring physics for sticker rotations — slight wobble on appear
+#### 14. Host monitoring round
+Reference: `BTHostMonitor`. Top bar: `R 1/3` pill + game name + meatballs. Body has "Players" label with a refresh circle. Then **Not answered** (with a count pill, players in melon-bordered cards) and **Answered** (mint, with point totals). Footer: disabled "Reveal Answers" primary + "Next Round →" outline.
+
+---
+
+### Flow 4 — Player
+
+#### 15. Player Round (mostly MCQ-text questions)
+Reference: `BTPlayerRound`. Top bar shows `OLIVE OIL` mini-cap · `Round 1 of 3` Fraunces title · `0 pts` sun sticker pill on the right.
+
+Each question is a sticker card with a "Question N" sun-colored mini-cap above. Inside: the question text (Fraunces 20px / weight 800), then the answers as chips. Selected chips fill with a palette color (cycles: melon → mint → ocean) and gain the offset shadow. The current app has only outlines — selected state is invisible. **Fix this.** Selected = filled + shadow + slight translate.
+
+Submit button at the bottom (full-width melon primary).
+
+#### 16. Player Round (Tags + Price + Slider)
+Reference: `BTPlayerTagsPrice`. Demonstrates the other 3 question types:
+- **Tags** — input pill + melon "Add" button. Added tags appear as filled mini-pills in rotating palette colors with a × delete glyph.
+- **Price** — split input: sun left segment with "£" glyph, cream right segment with the value, both wrapped in one ink-bordered sticker.
+- **Slider** — ocean card with cream track, sun-filled progress, melon thumb showing the value (was "Rate the vibe" in the existing brand sheet).
+
+The current screenshot shows tags + price; add a slider question to demonstrate the third type. The current "Add" button has a glossy gradient — replace with the standard sticker button recipe (no gradient, just flat melon + ink border + small offset shadow).
+
+#### 17. Round Results (reveal)
+Reference: `BTPlayerResults`. Top bar: same chrome but the pts pill is mint with the just-earned score.
+
+Body opens with a **big reveal card** — plum background, sun "THE ANSWER" mini-cap, then the sample's actual name in display font (e.g. "Frantoio Muraglia EVOO"), with a sparkle in the corner.
+
+Below that, per-question cards with: an 8px **left-edge accent** (mint if correct, melon if wrong), the question, "+100" mint pill or "0" tinted-melon pill, and Your answer / Correct labels.
+
+The existing screenshot has the green/red left edge already — just tighten the typography and use proper section labels.
+
+#### 18. End of game
+Reference: `BTEndGame`. Cream → sun gradient background.
+
+Hero: a tilted melon sticker card containing "WINNER" mini-cap (cream) · giant "1st" (display, 88px, stroked + drop-shadowed) · "630 pts" subtitle. Sparkles around it.
+
+Below: "Round by round" section header, then 3 sticker-card rows: round number tile (mint/sun/melon), round answer name, `+N` mint pill, expand chevron. Big melon "DONE" CTA at the bottom.
+
+---
+
+## Interactions & motion
+
+- **Chip select**: instant fill + 1px translate(-1px,-1px) for the "press down" feeling. Add a 120ms ease transition on `background-color, box-shadow, transform`.
+- **Button press**: translate by `(2px, 2px)` and reduce shadow from `5px 5px 0` to `3px 3px 0` for the press feel.
+- **Card press** (e.g. tapping a game in the list): scale 0.98 on touchdown, return on release.
+- **Modal entry** (game info, choose type): backdrop fades 200ms, sheet/card scales 0.94 → 1 with `easeOutBack` over 260ms.
+- **Reveal screen** (round results): the big plum reveal card scales 0.7 → 1 with a slight wobble (450ms `easeOutBack`), then per-question cards stagger in from below at 60ms intervals.
+- **End game**: "1st" badge scales 0.4 → 1 with bounce; sparkles fade-rotate in 200ms after.
 
 ---
 
 ## State Management
 
-Recommended (Redux Toolkit / Zustand / context):
-
-- `room` — `{ code, hostId, players: Player[], status: 'lobby'|'round'|'reveal' }`
-- `player` — `{ id, name, color, ready }`
-- `round` — `{ index, total, sampleLabel, questions: Question[], answers: Record<questionId, any>, lockedIn: boolean, deadlineAt }`
-- `tweaks` (dev only) — current palette / font / cardFeel for theming
-
-Backend: any presence-capable store (Firebase RTDB, Supabase Realtime, Liveblocks, Partykit). Each player publishes their answers under `rooms/{code}/rounds/{idx}/answers/{playerId}`; reveals when all are present.
-
----
-
-## Assets
-
-No raster assets. Everything is CSS / SVG. No emoji in final UI.
-
-Fonts via Google Fonts:
+```ts
+type Player = { id: string; name: string; color: string; }
+type AnswerValue = string | string[] | number;
+type Question = {
+  id: string;
+  type: 'mcq-text' | 'mcq-number' | 'slider' | 'tags' | 'price';
+  prompt: string;
+  options?: string[];      // for mcq
+  min?: number; max?: number; step?: number;  // for slider
+  currency?: 'GBP' | 'USD' | 'EUR';            // for price
+};
+type Questionnaire = { id: string; name: string; locked: boolean; questions: Question[]; };
+type Round = {
+  index: number;
+  sampleName: string;
+  correctAnswers: Record<string /* questionId */, AnswerValue>;
+};
+type Game = { id: string; name: string; questionnaireId: string; rounds: Round[]; };
+type Session = {
+  code: string;
+  hostId: string;
+  gameId: string;
+  status: 'lobby' | 'round-active' | 'round-reveal' | 'finished';
+  currentRound: number;
+  players: Player[];
+  pending: Player[];      // waiting-to-join
+  answers: Record<string /* playerId */, Record<string /* questionId */, AnswerValue>>;
+};
 ```
-https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fraunces:wght@400;700;900&family=DM+Sans:wght@400;500;700;900&display=swap
-```
+
+Realtime backend recommendation: Firebase RTDB, Supabase Realtime, Liveblocks, or Partykit. Each player writes their answer under `sessions/{code}/rounds/{idx}/answers/{playerId}`. The host's "Reveal Answers" toggles `status` to `round-reveal`.
 
 ---
 
@@ -249,82 +296,106 @@ https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fraunces:wght@400;
 
 ```
 reference/
-  Blind Taster.html        — main canvas; loads everything
-  tt-theme.jsx             — TT_PALETTES, TT_FONTS, TT_CARD_FEELS, TTStar, TTBlob, TTSticker, TTPill, etc.
-  tt-logo.jsx              — TTLetter, TTLogo, TTMonogram, TTLockup
-  tt-splash.jsx            — TTSplash1..4 (use TTSplash3 — Tickertape)
-  tt-screens.jsx           — TTRoundScreen, TTLobbyScreen, TTThemeSheet, TTAppIconGrid
-  design-canvas.jsx        — design canvas wrapper (not needed for production)
-  ios-frame.jsx            — iOS device frame mock (not needed for production)
+  Blind Taster.html              — original brand canvas (logo + splash variants + theme sheet)
+  Blind Taster App.html          — NEW: every app screen redesigned
+  tt-theme.jsx                   — palette, fonts, primitives (TTStar, TTBlob, TTPill, TTSticker)
+  tt-logo.jsx                    — Monogram, Lockup
+  tt-splash.jsx                  — 4 splash variants (Tickertape is the selected splash)
+  tt-screens.jsx                 — original Round / Lobby / Theme sheet (kept for color reference)
+  bt-chrome.jsx                  — shared app chrome (AppBar, SettingsFab, BTCard, BTCta, BTInput, BTChip, BTPill, BTAvatar, BTDialog)
+  bt-screens-host.jsx            — BTHome, BTHostMenu, BTQuestionnairesList, BTNewQuestionnaire, BTChooseType, BTEditQuestionnaire, BTEditQuestion
+  bt-screens-game.jsx            — BTGamesList, BTGameInfoModal, BTNewGame, BTHostSetAnswers, BTHostLobby, BTHostMonitor
+  bt-screens-player.jsx          — BTPlayerRound, BTPlayerTagsPrice, BTPlayerResults, BTEndGame
+  design-canvas.jsx, ios-frame.jsx — preview wrappers (ignore for production)
 ```
 
-The two "not needed" files are only used by the design canvas to present mockups; ignore them when implementing.
+Open `Blind Taster App.html` to see every screen at once.
 
 ---
 
-## Suggested Claude Code prompts
+## Suggested Claude Code Prompts
 
-### Prompt 1 — bootstrap
-
-```
-Read design_handoff_taste_tester/README.md end-to-end before doing anything.
-
-We're building Blind Taster — a collaborative party game for taste-testing food and
-wine. The README is the source of truth for the brand system, splash screen, and
-screens.
-
-Set up a new React Native + Expo project (TypeScript) called `blind-taster`. Add:
-- Google Fonts (Alfa Slab One, Fraunces, DM Sans) via expo-font
-- A `theme/` folder with palette, type, radii, shadows, and a single useTheme() hook
-- React Navigation with a stack: Splash → Lobby → Round → Reveal
-
-Stop and show me the project structure before building any screens.
-```
-
-### Prompt 2 — brand primitives
+### Prompt 1 — Audit & plan
 
 ```
-Build the brand primitives in `components/brand/`:
-- Monogram.tsx       (the TT squircle badge — see README §Logo System)
-- Lockup.tsx         (monogram + wordmark, horizontal | stacked × color | dark | light)
-- StickerCard.tsx    (cream/ink/offset-shadow card wrapper)
-- PillButton.tsx     (candy CTA with gloss highlight; sm/md/lg/xl sizes)
-- Sparkle.tsx        (4-point star SVG)
+Read design_handoff_blind_taster/README.md end-to-end before doing anything.
 
-Match the anatomy in the README exactly — colors, radii, border widths, the hard
-no-blur shadow, the inner gloss highlight on the button. Use the `Sticker` card feel
-for everything; do not invent alternates.
+Then open the existing codebase and:
 
-Reference: design_handoff_taste_tester/reference/tt-logo.jsx and tt-theme.jsx
+1. Identify every screen that's already implemented and map it 1:1 to the
+   numbered screens in the README (01 Home → 18 End of game).
+2. For each, note: which design tokens are wrong (hardcoded colors,
+   missing borders, soft shadows instead of offset shadows), which
+   primitives are missing (StickerCard, PillButton, Chip, AppBar,
+   SettingsFab, etc.), and which interactions don't match.
+3. Produce a punch-list ordered by visual impact: chrome first
+   (SettingsFab, AppBar back-button, button styling), then components
+   (chip selected state, sticker shadows), then per-screen polish.
+
+Don't change any code yet. Just produce the punch-list.
 ```
 
-### Prompt 3 — splash screen
+### Prompt 2 — Brand primitives
 
 ```
-Build the Splash screen at `screens/Splash.tsx` exactly as described in the
-README's "The Splash Screen — Tickertape" section.
+Build the brand primitives in components/brand/ following the README's
+"Components — build these first" section exactly.
 
-- 5 diagonal stripes of repeating wordmark, rotated -12°, with the colors and
-  text content from the README table
-- Centered sticker card, rotated -3°, with stacked Lockup + "Tap to start"
-  PillButton
-- Two corner sparkles
+Match anatomy in reference/bt-chrome.jsx:
+  Monogram, Lockup, Sparkle, StickerCard, PillButton, OutlineButton,
+  TextInput, Chip, StatusPill, Avatar, AppBar, SectionLabel, SettingsFab.
 
-Animate on entry: stripes fade in left-to-right (50ms stagger), then sticker
-card scales in 0.7→1 with easeOutBack (300ms).
+Each takes a single `palette` prop (the tokens from the README) and
+`fonts` where relevant. Use the project's existing pattern (styled
+components / Tailwind / RN StyleSheet) — don't introduce a new system.
 
-CTA navigates to Lobby. Reference: reference/tt-splash.jsx → TTSplash3.
+When you're done, refactor the app's entry-point so SettingsFab and
+AppBar are mounted globally — every screen in the punch-list uses these.
 ```
 
-### Prompt 4 — lobby & round
+### Prompt 3 — Host flow (screens 01–11)
 
 ```
-Build Lobby and Round screens following the README sections. Reference
-implementations are in reference/tt-screens.jsx (TTLobbyScreen, TTRoundScreen).
+Replace screens 01–11 (Home through "Set Round Answers") with the
+new designs. Reference: bt-screens-host.jsx and bt-screens-game.jsx
+in the handoff folder.
 
-Wire them to a Zustand store for now (mock the backend). State shape per the
-"State Management" section.
+Important:
+- Home (01) is the splash — full plum bg with tickertape stripes.
+  This is the user's existing splash from the brand handoff. Keep
+  the same anatomy.
+- The questionnaire create/edit flow (04–07) is the heaviest lift.
+  Build the bottom-sheet for "Choose Question Type" once and reuse.
+- The "Set Round Answers" screen (11) is host-only — it's where they
+  enter the sample name and pick the correct answer per question.
 
-Use only the brand primitives from components/brand/ — no inline styles for
-buttons, cards, or chips.
+Don't ship until every button has a proper sticker shadow + gloss
+highlight (except disabled state).
+```
+
+### Prompt 4 — Live game & player (screens 12–18)
+
+```
+Replace screens 12–18 (Host Lobby through End of game). Reference:
+bt-screens-game.jsx (lobby & monitor) and bt-screens-player.jsx.
+
+The biggest visual bugs in the current app:
+- Player chips have NO selected state (just outline). Fix: filled chip
+  with offset shadow + slight translate on select. Use rotating palette
+  colors (melon → mint → ocean) so a round of selections looks
+  intentional, not monochrome.
+- The "Add" button on tag inputs has a glossy gradient — replace with
+  the standard sticker button (flat melon + ink border + 2px offset
+  shadow). The gloss highlight only goes on PillButton CTAs, not on
+  utility buttons.
+- The end-game "1st" needs to be HUGE and tilted with a stroke + ink
+  drop shadow. Currently it's the same size as body text — fix.
+- The round-results "left-edge accent" (green/red) is on the wrong
+  side and too thin in the current build. Make it 8px on the LEFT
+  edge of the card.
+
+Wire the reveal animation: when the host taps "Reveal Answers", the
+player's screen transitions to screen 17 with the plum hero card
+scaling in (0.7 → 1, easeOutBack 450ms), then per-question cards
+stagger in from below.
 ```
