@@ -123,7 +123,7 @@ export default function QuestionEditorScreen(): React.ReactElement {
                 value={draft.prompt}
                 onChangeText={(p) => { setDraft({ ...draft, prompt: p } as Question); setPromptError(undefined); }}
                 placeholder="What should players answer?"
-                placeholderTextColor={Colors.textDisabled}
+                placeholderTextColor={Colors.ink + '66'}
                 multiline
                 returnKeyType="default"
                 accessibilityLabel="Question prompt"
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.ink,
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.cream,
     borderWidth:     2.5,
     borderColor:     Colors.ink,
     borderRadius:    BorderRadius.md,
@@ -223,19 +223,20 @@ const styles = StyleSheet.create({
     gap:             Spacing.sm,
   },
   configCard: {
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: Colors.cream,
   },
   cardError: {
-    borderColor: Colors.error,
+    borderColor: Colors.melon,
   },
 
   fieldLabel: {
-    fontFamily:    FontFamily.bodyBold,
+    fontFamily:    FontFamily.body,
     fontSize:      FontSize.xs,
     fontWeight:    FontWeight.black,
-    color:         Colors.textSecondary,
+    color:         Colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
+    opacity:       0.7,
   },
   promptInput: {
     fontFamily:   FontFamily.heading,

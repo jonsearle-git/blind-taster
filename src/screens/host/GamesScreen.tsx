@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontSize, FontWeight, FontFamily } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { GamePhase } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
 import { SavedGame } from '../../types/savedGame';
@@ -13,7 +13,6 @@ import { useQuestionnaires } from '../../hooks/useQuestionnaires';
 import { useGameContext } from '../../context/GameContext';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
-import { Divider } from '../../components/Divider';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -29,6 +28,9 @@ type DialogConfig = {
   destructive?: boolean;
   onConfirm:    () => void;
 };
+
+const TILE_COLORS = [Colors.sun, Colors.melon, Colors.mint, Colors.plum, Colors.ocean, Colors.sun, Colors.melon, Colors.mint];
+const TILE_TEXT   = [Colors.ink, Colors.cream, Colors.ink, Colors.cream, Colors.cream, Colors.ink, Colors.cream, Colors.ink];
 
 export default function GamesScreen(): React.ReactElement {
   const navigation                  = useNavigation<Nav>();
@@ -98,7 +100,7 @@ export default function GamesScreen(): React.ReactElement {
         variant="secondary"
       />
 
-      <Divider />
+      <View style={styles.listGap} />
 
       {loading && <LoadingSpinner message="Loading…" />}
       {error !== null && <ErrorMessage message={error} />}
@@ -109,85 +111,90 @@ export default function GamesScreen(): React.ReactElement {
         <FlatList
           data={games}
           keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <Divider spacing={0} />}
-          renderItem={({ item }) => {
+          contentContainerStyle={styles.list}
+          renderItem={({ item, index }) => {
             const isActive = state.activeGameId === item.id &&
               state.gameState?.phase !== undefined &&
               state.gameState.phase !== GamePhase.GameOver;
+            const tileColor = isActive ? Colors.melon : TILE_COLORS[index % TILE_COLORS.length];
+            const tileText  = isActive ? Colors.cream : TILE_TEXT[index % TILE_TEXT.length];
+
             return (
-              <Pressable
-                onPress={isActive && !editMode ? () => handleRejoin(item) : undefined}
-                style={({ pressed }) => [
-                  styles.row,
-                  isActive && styles.rowActive,
-                  pressed && isActive && !editMode && styles.rowPressed,
-                ]}
-              >
-                {editMode ? (
-                  <Pressable
-                    onPress={() => navigation.navigate('RoundsBuilder', { gameId: item.id })}
-                    style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${item.name}`}
-                  >
-                    <View style={styles.rowText}>
-                      <Text style={[styles.rowName, isActive && styles.rowNameActive]} numberOfLines={1}>{item.name}</Text>
-                      <Text style={[styles.rowMeta, isActive && styles.rowMetaActive]}>
-                        {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
-                      </Text>
-                    </View>
-                    <Text style={styles.chevronEdit}>›</Text>
-                  </Pressable>
-                ) : (
-                  <View style={styles.rowMain}>
-                    <View style={styles.rowText}>
-                      <Text style={[styles.rowName, isActive && styles.rowNameActive]} numberOfLines={1}>{item.name}</Text>
-                      <Text style={[styles.rowMeta, isActive && styles.rowMetaActive]}>
-                        {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
-                      </Text>
-                    </View>
-                    {isActive ? (
-                      <Pressable
-                        onPress={() => handleRejoin(item)}
-                        style={styles.rejoinBtn}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Rejoin ${item.name}`}
-                      >
-                        <Text style={styles.rejoinText}>Live ▶</Text>
-                      </Pressable>
-                    ) : (
-                      <>
+              <View style={styles.cardShadowWrap}>
+                <View style={styles.cardShadow} />
+                <View style={[styles.card, isActive && styles.cardActive]}>
+                  {editMode ? (
+                    <Pressable
+                      onPress={() => navigation.navigate('RoundsBuilder', { gameId: item.id })}
+                      style={({ pressed }) => [styles.cardMain, pressed && styles.pressed]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${item.name}`}
+                    >
+                      <View style={[styles.tile, { backgroundColor: tileColor }]}>
+                        <Text style={[styles.tileText, { color: tileText }]}>{item.name[0].toUpperCase()}</Text>
+                      </View>
+                      <View style={styles.cardText}>
+                        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.cardMeta}>
+                          {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
+                        </Text>
+                      </View>
+                      <Text style={styles.chevron}>›</Text>
+                    </Pressable>
+                  ) : (
+                    <View style={styles.cardMain}>
+                      <View style={[styles.tile, { backgroundColor: tileColor }]}>
+                        <Text style={[styles.tileText, { color: tileText }]}>{item.name[0].toUpperCase()}</Text>
+                      </View>
+                      <View style={styles.cardText}>
+                        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.cardMeta}>
+                          {questionnaireName(item.questionnaireId)} · {item.rounds.length} rounds
+                        </Text>
+                      </View>
+                      {isActive ? (
                         <Pressable
-                          onPress={() => setShoppingList(item)}
-                          style={styles.listBtn}
+                          onPress={() => handleRejoin(item)}
+                          style={styles.rejoinBtn}
                           accessibilityRole="button"
-                          accessibilityLabel={`Answers for ${item.name}`}
+                          accessibilityLabel={`Rejoin ${item.name}`}
                         >
-                          <Text style={styles.listText}>Answers</Text>
+                          <Text style={styles.rejoinText}>{'Live ▶︎'}</Text>
                         </Pressable>
-                        <Pressable
-                          onPress={() => handleHost(item)}
-                          style={styles.hostBtn}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Host ${item.name}`}
-                        >
-                          <Text style={styles.hostText}>Host ▶</Text>
-                        </Pressable>
-                      </>
-                    )}
-                  </View>
-                )}
-                {editMode && (
-                  <Pressable
-                    onPress={() => handleDelete(item)}
-                    style={styles.deleteBtn}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete ${item.name}`}
-                  >
-                    <Text style={styles.deleteText}>✕</Text>
-                  </Pressable>
-                )}
-              </Pressable>
+                      ) : (
+                        <>
+                          <Pressable
+                            onPress={() => setShoppingList(item)}
+                            style={styles.answersBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Answers for ${item.name}`}
+                          >
+                            <Text style={styles.answersBtnText}>Answers</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleHost(item)}
+                            style={styles.hostBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Host ${item.name}`}
+                          >
+                            <Text style={styles.hostBtnText}>{'Host ▶︎'}</Text>
+                          </Pressable>
+                        </>
+                      )}
+                    </View>
+                  )}
+                  {editMode && (
+                    <Pressable
+                      onPress={() => handleDelete(item)}
+                      style={styles.deleteBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${item.name}`}
+                    >
+                      <Text style={styles.deleteBtnText}>✕</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
             );
           }}
         />
@@ -216,24 +223,28 @@ export default function GamesScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  headerBtn:     { paddingHorizontal: Spacing.sm },
-  headerBtnText: { color: Colors.primary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
-  row:           { flexDirection: 'row', alignItems: 'center' },
-  rowActive:     { backgroundColor: Colors.mint, borderRadius: Spacing.sm, marginVertical: 2, paddingHorizontal: Spacing.sm },
-  rowMain:       { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
-  rowPressed:    { opacity: 0.7 },
-  rowText:       { flex: 1, gap: Spacing.xs },
-  rowName:       { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  rowNameActive: { color: Colors.ink, fontWeight: FontWeight.black },
-  rowMeta:       { color: Colors.textSecondary, fontSize: FontSize.sm },
-  rowMetaActive: { color: Colors.ink, opacity: 0.7 },
-  chevronEdit: { color: Colors.textDisabled, fontSize: FontSize.xl },
-  listBtn:     { backgroundColor: Colors.surfaceElevated, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', minWidth: 72 },
-  listText:    { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  hostBtn:     { backgroundColor: Colors.primary, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, alignItems: 'center', minWidth: 72 },
-  hostText:    { color: Colors.surface, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  rejoinBtn:   { backgroundColor: Colors.ink, borderRadius: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, alignItems: 'center', minWidth: 72 },
-  rejoinText:  { color: Colors.cream, fontSize: FontSize.sm, fontWeight: FontWeight.black },
-  deleteBtn:   { padding: Spacing.md },
-  deleteText:  { color: Colors.error, fontSize: FontSize.md },
+  headerBtn:      { paddingHorizontal: Spacing.sm },
+  headerBtnText:  { color: Colors.melon, fontFamily: FontFamily.heading, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  listGap:        { height: Spacing.md },
+  list:           { gap: Spacing.sm, paddingBottom: Spacing.lg },
+  cardShadowWrap: { position: 'relative' },
+  cardShadow:     { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
+  card:           { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cream, borderRadius: BorderRadius.md, borderWidth: 2.5, borderColor: Colors.ink, overflow: 'hidden' },
+  cardActive:     { backgroundColor: Colors.mint },
+  cardMain:       { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
+  pressed:        { opacity: 0.7 },
+  tile:           { width: 50, height: 50, borderRadius: BorderRadius.sm, borderWidth: 2.5, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  tileText:       { fontFamily: FontFamily.display, fontSize: FontSize.xl, fontWeight: FontWeight.black },
+  cardText:       { flex: 1, gap: 2, minWidth: 0 },
+  cardName:       { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  cardMeta:       { color: Colors.ink, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 0.5, opacity: 0.6 },
+  chevron:        { color: Colors.textDisabled, fontSize: FontSize.xl, paddingRight: Spacing.xs },
+  answersBtn:     { padding: '8px 12px' as unknown as number, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, backgroundColor: Colors.cream, borderWidth: 2, borderColor: Colors.ink },
+  answersBtnText: { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 0.5 },
+  hostBtn:        { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, backgroundColor: Colors.melon, borderWidth: 2, borderColor: Colors.ink, shadowColor: Colors.ink, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2 },
+  hostBtnText:    { fontFamily: FontFamily.body, color: Colors.cream, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 0.5 },
+  rejoinBtn:      { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: BorderRadius.pill, backgroundColor: Colors.ink, borderWidth: 2, borderColor: Colors.ink },
+  rejoinText:     { fontFamily: FontFamily.body, color: Colors.cream, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 0.5 },
+  deleteBtn:      { padding: Spacing.md, borderLeftWidth: 1.5, borderLeftColor: Colors.ink + '33' },
+  deleteBtnText:  { color: Colors.melon, fontSize: FontSize.md },
 });

@@ -91,7 +91,7 @@ export function QuestionInput({ question, answer, onAnswer, error }: Props): Rea
 const styles = StyleSheet.create({
   cardWrapper: { position: 'relative' },
   cardShadow:  { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
-  card:        { backgroundColor: Colors.surface, borderWidth: 2.5, borderColor: Colors.border, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.sm },
-  cardError:   { borderColor: Colors.error },
-  error:       { color: Colors.error, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  card:        { backgroundColor: Colors.cream, borderWidth: 2.5, borderColor: Colors.ink, borderRadius: BorderRadius.md, padding: Spacing.md, gap: Spacing.sm },
+  cardError:   { borderColor: Colors.melon },
+  error:       { color: Colors.melon, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
 });

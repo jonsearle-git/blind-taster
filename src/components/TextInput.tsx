@@ -7,7 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 
 type Props = TextInputProps & {
@@ -21,10 +21,10 @@ export function TextInput({ label, error, containerStyle, style, ...rest }: Prop
     <View style={[styles.container, containerStyle]}>
       {label !== undefined && <Text style={styles.label}>{label}</Text>}
       <View style={styles.inputWrapper}>
-        <View style={styles.inputShadow} />
+        <View style={[styles.inputShadow, error !== undefined && styles.inputShadowError]} />
         <RNTextInput
           style={[styles.input, error !== undefined && styles.inputError, style]}
-          placeholderTextColor={Colors.textDisabled}
+          placeholderTextColor={Colors.ink + '66'}
           accessibilityLabel={label}
           {...rest}
         />
@@ -39,42 +39,49 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   label: {
-    color:       Colors.textSecondary,
-    fontSize:    FontSize.sm,
-    fontWeight:  FontWeight.bold,
-    letterSpacing: 1,
+    fontFamily:    FontFamily.body,
+    color:         Colors.ink,
+    fontSize:      FontSize.xs,
+    fontWeight:    FontWeight.black,
+    letterSpacing: 2,
     textTransform: 'uppercase',
+    opacity:       0.7,
   },
   inputWrapper: {
     position: 'relative',
   },
   inputShadow: {
     position:        'absolute',
-    top:             4,
-    left:            4,
-    right:           -4,
-    bottom:          -4,
-    borderRadius:    BorderRadius.md,
+    top:             3,
+    left:            3,
+    right:           -3,
+    bottom:          -3,
+    borderRadius:    BorderRadius.pill,
     backgroundColor: Colors.ink,
   },
+  inputShadowError: {
+    backgroundColor: Colors.melon,
+  },
   input: {
-    backgroundColor:   Colors.surface,
+    backgroundColor:   Colors.cream,
     borderWidth:       2.5,
-    borderColor:       Colors.border,
-    borderRadius:      BorderRadius.md,
-    paddingHorizontal: Spacing.md,
+    borderColor:       Colors.ink,
+    borderRadius:      BorderRadius.pill,
+    paddingHorizontal: Spacing.lg,
     paddingVertical:   Spacing.sm,
-    color:             Colors.textPrimary,
+    color:             Colors.ink,
+    fontFamily:        FontFamily.body,
     fontSize:          FontSize.md,
     fontWeight:        FontWeight.medium,
     minHeight:         52,
   },
   inputError: {
-    borderColor: Colors.error,
+    borderColor: Colors.melon,
   },
   error: {
-    color:     Colors.error,
-    fontSize:  FontSize.sm,
-    fontWeight: FontWeight.bold,
+    fontFamily:  FontFamily.body,
+    color:       Colors.melon,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.bold,
   },
 });

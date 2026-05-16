@@ -39,7 +39,7 @@ export function TagsQuestion({ question, tags, onChange, locked = false }: Props
             onChangeText={setInput}
             onSubmitEditing={handleAdd}
             placeholder="Type a note and press Add…"
-            placeholderTextColor={Colors.textDisabled}
+            placeholderTextColor={Colors.ink + '66'}
             returnKeyType="done"
             blurOnSubmit={false}
           />
@@ -82,38 +82,50 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', gap: Spacing.sm },
   input: {
     flex:              1,
-    backgroundColor:   Colors.surface,
-    borderWidth:       2.5,
-    borderColor:       Colors.border,
-    borderRadius:      BorderRadius.md,
+    backgroundColor:   Colors.cream,
+    borderWidth:       2,
+    borderColor:       Colors.ink,
+    borderRadius:      BorderRadius.pill,
     paddingHorizontal: Spacing.md,
     paddingVertical:   Spacing.sm,
-    color:             Colors.textPrimary,
-    fontSize:          FontSize.md,
+    color:             Colors.ink,
+    fontSize:          FontSize.sm,
     fontWeight:        FontWeight.medium,
-    minHeight:         52,
+    minHeight:         44,
     fontFamily:        FontFamily.body,
+    shadowColor:       Colors.ink,
+    shadowOffset:      { width: 2, height: 2 },
+    shadowOpacity:     1,
+    shadowRadius:      0,
+    elevation:         2,
   },
   addButton: {
     backgroundColor:   Colors.melon,
-    borderRadius:      BorderRadius.md,
+    borderRadius:      BorderRadius.pill,
     paddingHorizontal: Spacing.md,
     justifyContent:    'center',
     alignItems:        'center',
-    borderWidth:       2.5,
+    borderWidth:       2,
     borderColor:       Colors.ink,
-    minHeight:         52,
+    minHeight:         44,
+    shadowColor:       Colors.ink,
+    shadowOffset:      { width: 2, height: 2 },
+    shadowOpacity:     1,
+    shadowRadius:      0,
+    elevation:         2,
   },
   addButtonText: {
-    fontFamily:  FontFamily.bodyBold,
-    color:       Colors.cream,
-    fontSize:    FontSize.md,
-    fontWeight:  FontWeight.bold,
+    fontFamily:    FontFamily.display,
+    color:         Colors.cream,
+    fontSize:      FontSize.sm,
+    fontWeight:    FontWeight.black,
+    letterSpacing: 0.5,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   empty: {
     fontFamily: FontFamily.body,
-    color:      Colors.textDisabled,
+    color:      Colors.ink,
     fontSize:   FontSize.sm,
+    opacity:    0.5,
   },
 });

@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text, Pressable, ScrollView, ViewStyle, Modal } from 'react-native';
 import { useState, useRef } from 'react';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
 import { Spacing, BorderRadius } from '../constants/spacing';
 
 export type DropdownOption = {
@@ -90,23 +90,23 @@ export function Dropdown({ label, placeholder = 'Select…', options, value, onC
 
 const styles = StyleSheet.create({
   container:          { gap: Spacing.xs },
-  label:              { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1, textTransform: 'uppercase' },
+  label:              { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7 },
   controlWrapper:     { position: 'relative' },
-  controlShadow:      { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
-  control:            { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderWidth: 2.5, borderColor: Colors.border, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 52 },
-  controlText:        { flex: 1, color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  controlPlaceholder: { color: Colors.textDisabled },
-  chevron:            { color: Colors.textDisabled, fontSize: FontSize.xl },
+  controlShadow:      { position: 'absolute', top: 3, left: 3, right: -3, bottom: -3, borderRadius: BorderRadius.pill, backgroundColor: Colors.ink },
+  control:            { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cream, borderWidth: 2.5, borderColor: Colors.ink, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, minHeight: 52 },
+  controlText:        { flex: 1, fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.medium },
+  controlPlaceholder: { color: Colors.ink + '66' },
+  chevron:            { color: Colors.ink, fontSize: FontSize.sm, opacity: 0.6 },
   backdrop:           { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   dropdown:           { position: 'absolute' },
   dropdownShadow:     { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
-  dropdownInner:      { backgroundColor: Colors.surface, borderWidth: 2.5, borderColor: Colors.border, borderRadius: BorderRadius.md, overflow: 'hidden' },
+  dropdownInner:      { backgroundColor: Colors.cream, borderWidth: 2.5, borderColor: Colors.ink, borderRadius: BorderRadius.md, overflow: 'hidden' },
   dropdownScroll:     { maxHeight: 220 },
   option:             { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, gap: 2 },
-  optionPressed:      { backgroundColor: Colors.surfaceElevated },
-  optionLabel:        { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  optionSubLabel:     { color: Colors.textSecondary, fontSize: FontSize.sm },
-  empty:              { color: Colors.textDisabled, fontSize: FontSize.md, textAlign: 'center', padding: Spacing.md },
-  controlError:       { borderColor: Colors.error },
-  error:              { color: Colors.error, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  optionPressed:      { backgroundColor: Colors.sun + '44' },
+  optionLabel:        { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  optionSubLabel:     { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.sm, opacity: 0.6 },
+  empty:              { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.md, textAlign: 'center', padding: Spacing.md, opacity: 0.5 },
+  controlError:       { borderColor: Colors.melon },
+  error:              { fontFamily: FontFamily.body, color: Colors.melon, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
 });

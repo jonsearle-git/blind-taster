@@ -25,16 +25,27 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props): React.ReactElement {
-  const dismiss = onCancel ?? onConfirm;
+  const dismiss      = onCancel ?? onConfirm;
+  const iconLabel    = destructive ? '!' : '?';
+  const iconBg       = destructive ? Colors.melon : Colors.sun;
+  const iconText     = destructive ? Colors.cream : Colors.ink;
+  const confirmColor = destructive ? Colors.melon : Colors.melon;
+  const confirmText  = destructive ? Colors.cream : Colors.cream;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={dismiss}>
       <Pressable style={styles.backdrop} onPress={dismiss}>
         <Pressable style={styles.wrapper} onPress={() => {}}>
-          <View style={styles.shadow} />
+          <View style={styles.dialogShadow} />
           <View style={styles.dialog}>
+            {/* Icon tile */}
+            <View style={[styles.iconTile, { backgroundColor: iconBg }]}>
+              <Text style={[styles.iconText, { color: iconText }]}>{iconLabel}</Text>
+            </View>
+
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.message}>{message}</Text>
+
             <View style={styles.actions}>
               <Button
                 label={confirmLabel}
@@ -68,36 +79,63 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     width:    '100%',
-    position: 'relative',
+    maxWidth: 320,
+    transform: [{ rotate: '-1deg' }],
   },
-  shadow: {
+  dialogShadow: {
     position:        'absolute',
-    top:             6,
-    left:            6,
-    right:           -6,
-    bottom:          -6,
-    borderRadius:    BorderRadius.xl,
+    top:             8,
+    left:            8,
+    right:           -8,
+    bottom:          -8,
+    borderRadius:    BorderRadius.lg,
     backgroundColor: Colors.ink,
   },
   dialog: {
-    backgroundColor: Colors.surface,
-    borderRadius:    BorderRadius.xl,
-    borderWidth:     2.5,
-    borderColor:     Colors.border,
+    backgroundColor: Colors.cream,
+    borderRadius:    BorderRadius.lg,
+    borderWidth:     3,
+    borderColor:     Colors.ink,
     padding:         Spacing.lg,
-    gap:             Spacing.md,
+    gap:             Spacing.sm,
+  },
+  iconTile: {
+    width:        54,
+    height:       54,
+    borderRadius: BorderRadius.sm,
+    borderWidth:  2.5,
+    borderColor:  Colors.ink,
+    shadowColor:  Colors.ink,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius:  0,
+    elevation:     3,
+    alignItems:    'center',
+    justifyContent:'center',
+    alignSelf:     'flex-start',
+    marginBottom:  Spacing.xs,
+    transform:     [{ rotate: '-3deg' }],
+  },
+  iconText: {
+    fontFamily:  FontFamily.display,
+    fontSize:    FontSize.xxl,
+    fontWeight:  FontWeight.black,
   },
   title: {
-    fontFamily: FontFamily.heading,
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.lg,
-    fontWeight: FontWeight.bold,
+    fontFamily:    FontFamily.heading,
+    color:         Colors.ink,
+    fontSize:      FontSize.xl,
+    fontWeight:    FontWeight.black,
+    letterSpacing: -0.2,
+    lineHeight:    FontSize.xl * 1.15,
   },
   message: {
-    fontFamily: FontFamily.body,
-    color:      Colors.textSecondary,
-    fontSize:   FontSize.md,
-    lineHeight: FontSize.md * 1.5,
+    fontFamily:  FontFamily.body,
+    color:       Colors.ink,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.medium,
+    lineHeight:  FontSize.sm * 1.5,
+    opacity:     0.75,
   },
   actions: {
     gap:       Spacing.sm,

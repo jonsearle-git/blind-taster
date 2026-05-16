@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../constants/colors';
-import { FontSize, FontWeight } from '../constants/typography';
-import { Spacing } from '../constants/spacing';
+import { FontFamily, FontSize, FontWeight } from '../constants/typography';
+import { Spacing, BorderRadius } from '../constants/spacing';
 import { PlayerResult } from '../types/results';
 
 type Props = {
@@ -17,55 +17,74 @@ function positionLabel(position: number): string {
 
 export function LeaderboardRow({ result, highlight = false }: Props): React.ReactElement {
   return (
-    <View style={[styles.row, highlight && styles.highlighted]}>
-      <Text style={[styles.position, highlight && styles.highlightedText]}>
-        {positionLabel(result.position)}
-      </Text>
-      <Text style={[styles.name, highlight && styles.highlightedText]} numberOfLines={1}>
-        {result.player.name}
-      </Text>
-      <Text style={[styles.score, highlight && styles.highlightedScore]}>
-        {result.totalScore} pts
-      </Text>
+    <View style={[styles.shadowWrap, highlight && styles.shadowWrapHighlight]}>
+      {highlight && <View style={styles.shadow} />}
+      <View style={[styles.row, highlight && styles.highlighted]}>
+        <View style={[styles.positionBadge, { backgroundColor: highlight ? Colors.melon : Colors.sun }]}>
+          <Text style={[styles.position, { color: highlight ? Colors.cream : Colors.ink }]}>
+            {positionLabel(result.position)}
+          </Text>
+        </View>
+        <Text style={styles.name} numberOfLines={1}>{result.player.name}</Text>
+        <View style={styles.scoreBadge}>
+          <Text style={styles.score}>{result.totalScore} pts</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  shadowWrap:          { position: 'relative' },
+  shadowWrapHighlight: {},
+  shadow:              { position: 'absolute', top: 3, left: 3, right: -3, bottom: -3, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
   row: {
     flexDirection:   'row',
     alignItems:      'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     gap:             Spacing.sm,
+    borderRadius:    BorderRadius.md,
+    borderWidth:     2.5,
+    borderColor:     Colors.ink,
+    backgroundColor: Colors.cream,
   },
   highlighted: {
-    backgroundColor: Colors.surfaceElevated,
-    borderRadius:    Spacing.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.gold,
+    backgroundColor: Colors.mint,
+  },
+  positionBadge: {
+    width:          36,
+    height:         36,
+    borderRadius:   BorderRadius.xs,
+    borderWidth:    2,
+    borderColor:    Colors.ink,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   position: {
-    color:      Colors.textSecondary,
-    fontSize:   FontSize.sm,
-    fontWeight: FontWeight.bold,
-    width:      36,
+    fontFamily:  FontFamily.display,
+    fontSize:    FontSize.xs,
+    fontWeight:  FontWeight.black,
   },
   name: {
-    flex:       1,
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.medium,
+    flex:        1,
+    fontFamily:  FontFamily.heading,
+    color:       Colors.ink,
+    fontSize:    FontSize.md,
+    fontWeight:  FontWeight.black,
+  },
+  scoreBadge: {
+    backgroundColor:   Colors.mint,
+    borderRadius:      BorderRadius.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical:   3,
+    borderWidth:       2,
+    borderColor:       Colors.ink,
   },
   score: {
-    color:      Colors.gold,
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.bold,
-  },
-  highlightedText: {
-    color: Colors.textPrimary,
-  },
-  highlightedScore: {
-    color: Colors.goldLight,
+    fontFamily:  FontFamily.heading,
+    color:       Colors.ink,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.black,
   },
 });

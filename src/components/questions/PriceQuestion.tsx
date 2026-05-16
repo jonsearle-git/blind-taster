@@ -42,7 +42,7 @@ export function PriceQuestion({ question, value, onChange, locked = false }: Pro
           keyboardType="decimal-pad"
           editable={!locked}
           placeholder="0.00"
-          placeholderTextColor={Colors.textDisabled}
+          placeholderTextColor={Colors.ink + '66'}
           accessibilityLabel={`${question.prompt} price in ${question.currencySymbol}`}
         />
       </View>
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex:                    1,
-    backgroundColor:         Colors.surface,
+    backgroundColor:         Colors.cream,
     borderWidth:             2.5,
     borderColor:             Colors.ink,
     borderTopRightRadius:    BorderRadius.sm,

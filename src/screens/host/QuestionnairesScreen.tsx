@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontSize, FontWeight, FontFamily } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { HostStackParamList } from '../../types/navigation';
 import { Questionnaire } from '../../types/questionnaire';
 import { useQuestionnaires } from '../../hooks/useQuestionnaires';
@@ -13,13 +13,15 @@ import { questionnaireHasGames } from '../../lib/games';
 import { cloneQuestionnaire, generateCopyName } from '../../lib/questionnaires';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { Button } from '../../components/Button';
-import { Divider } from '../../components/Divider';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 type Nav = NativeStackNavigationProp<HostStackParamList>;
+
+const TILE_COLORS = [Colors.sun, Colors.melon, Colors.mint, Colors.plum, Colors.ocean, Colors.sun, Colors.melon, Colors.mint];
+const TILE_TEXT   = [Colors.ink, Colors.cream, Colors.ink, Colors.cream, Colors.cream, Colors.ink, Colors.cream, Colors.ink];
 
 export default function QuestionnairesScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -62,7 +64,7 @@ export default function QuestionnairesScreen(): React.ReactElement {
         variant="secondary"
       />
 
-      <Divider />
+      <View style={styles.listGap} />
 
       {loading && <LoadingSpinner message="Loading…" />}
       {error !== null && <ErrorMessage message={error} />}
@@ -73,44 +75,55 @@ export default function QuestionnairesScreen(): React.ReactElement {
         <FlatList
           data={questionnaires}
           keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <Divider spacing={0} />}
-          renderItem={({ item }) => {
-            const locked = questionnaireHasGames(item.id, games);
+          contentContainerStyle={styles.list}
+          renderItem={({ item, index }) => {
+            const locked    = questionnaireHasGames(item.id, games);
+            const tileColor = TILE_COLORS[index % TILE_COLORS.length];
+            const tileText  = TILE_TEXT[index % TILE_TEXT.length];
             return (
-              <View style={styles.row}>
-                <Pressable
-                  onPress={() => handleEdit(item)}
-                  style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit ${item.name}`}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.rowMeta}>{item.questions.length} questions</Text>
-                  </View>
-                  <Text style={styles.chevron}>{locked ? '🔒' : '›'}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setDuplicateDialog(item)}
-                  style={styles.actionBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Duplicate ${item.name}`}
-                >
-                  <Text style={styles.actionText}>⧉</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => handleDelete(item)}
-                  style={styles.deleteBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${item.name}`}
-                >
-                  <Text style={styles.deleteText}>✕</Text>
-                </Pressable>
+              <View style={styles.cardShadowWrap}>
+                <View style={styles.cardShadow} />
+                <View style={styles.card}>
+                  <Pressable
+                    onPress={() => handleEdit(item)}
+                    style={({ pressed }) => [styles.cardMain, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit ${item.name}`}
+                  >
+                    <View style={[styles.tile, { backgroundColor: tileColor }]}>
+                      <Text style={[styles.tileText, { color: tileText }]}>{item.name[0].toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.cardText}>
+                      <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.cardMeta}>
+                        {item.questions.length} questions{locked ? ' · Locked 🔒' : ''}
+                      </Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDuplicateDialog(item)}
+                    style={styles.iconBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Duplicate ${item.name}`}
+                  >
+                    <Text style={styles.iconBtnText}>⧉</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleDelete(item)}
+                    style={styles.deleteBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${item.name}`}
+                  >
+                    <Text style={styles.deleteBtnText}>✕</Text>
+                  </Pressable>
+                </View>
               </View>
             );
           }}
         />
       )}
+
       <ConfirmDialog
         visible={dialog !== null}
         title="Delete Questionnaire"
@@ -126,7 +139,7 @@ export default function QuestionnairesScreen(): React.ReactElement {
 
       <ConfirmDialog
         visible={lockedDialog !== null}
-        title="Questionnaire locked"
+        title="Questionnaire Locked"
         message={lockedDialog
           ? `"${lockedDialog.q.name}" can't be edited — ${lockedDialog.count} saved game${lockedDialog.count === 1 ? ' uses' : 's use'} it. Delete those games first, or duplicate this questionnaire.`
           : ''}
@@ -148,15 +161,21 @@ export default function QuestionnairesScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  row:         { flexDirection: 'row', alignItems: 'center' },
-  rowMain:     { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, gap: Spacing.sm },
-  rowPressed:  { opacity: 0.7 },
-  rowText:     { flex: 1, gap: Spacing.xs },
-  rowName:     { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  rowMeta:     { color: Colors.textSecondary, fontSize: FontSize.sm },
-  chevron:     { color: Colors.textDisabled, fontSize: FontSize.xl },
-  actionBtn:   { padding: Spacing.md },
-  actionText:  { color: Colors.textSecondary, fontSize: FontSize.lg },
-  deleteBtn:   { padding: Spacing.md },
-  deleteText:  { color: Colors.error, fontSize: FontSize.md },
+  listGap:        { height: Spacing.md },
+  list:           { gap: Spacing.sm, paddingBottom: Spacing.lg },
+  cardShadowWrap: { position: 'relative' },
+  cardShadow:     { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
+  card:           { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cream, borderRadius: BorderRadius.md, borderWidth: 2.5, borderColor: Colors.ink, overflow: 'hidden' },
+  cardMain:       { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
+  pressed:        { opacity: 0.7 },
+  tile:           { width: 44, height: 44, borderRadius: BorderRadius.xs, borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  tileText:       { fontFamily: FontFamily.display, fontSize: FontSize.lg, fontWeight: FontWeight.black },
+  cardText:       { flex: 1, gap: 2 },
+  cardName:       { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  cardMeta:       { color: Colors.ink, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.6 },
+  chevron:        { color: Colors.textDisabled, fontSize: FontSize.xl, paddingRight: Spacing.xs },
+  iconBtn:        { padding: Spacing.md, borderLeftWidth: 1.5, borderLeftColor: Colors.ink + '33' },
+  iconBtnText:    { color: Colors.ink, fontSize: FontSize.lg, opacity: 0.7 },
+  deleteBtn:      { padding: Spacing.md, borderLeftWidth: 1.5, borderLeftColor: Colors.ink + '33' },
+  deleteBtnText:  { color: Colors.melon, fontSize: FontSize.md },
 });

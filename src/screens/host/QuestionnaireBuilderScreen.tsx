@@ -4,8 +4,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { v4 as uuidv4 } from 'uuid';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontSize, FontWeight, FontFamily } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { QuestionType } from '../../constants/gameConstants';
 import { HostStackParamList } from '../../types/navigation';
 import { Question, Questionnaire, SliderNumberQuestion } from '../../types/questionnaire';
@@ -158,12 +158,12 @@ export default function QuestionnaireBuilderScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   inner:             { flex: 1, padding: Spacing.md, gap: Spacing.md },
-  hint:              { color: Colors.textDisabled, fontSize: FontSize.md, textAlign: 'center', paddingVertical: Spacing.xl },
+  hint:              { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.md, textAlign: 'center', paddingVertical: Spacing.xl, opacity: 0.55 },
   gap:               { height: Spacing.sm },
   backdrop:          { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
-  sheet:             { backgroundColor: Colors.surface, borderTopLeftRadius: Spacing.lg, borderTopRightRadius: Spacing.lg, padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1, borderColor: Colors.border },
-  sheetTitle:        { color: Colors.textPrimary, fontSize: FontSize.lg, fontWeight: FontWeight.bold, marginBottom: Spacing.sm },
-  sheetOption:       { paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm, borderRadius: Spacing.sm },
-  sheetOptionPressed:{ backgroundColor: Colors.surfaceElevated },
-  sheetOptionText:   { color: Colors.textPrimary, fontSize: FontSize.md },
+  sheet:             { backgroundColor: Colors.cream, borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 2.5, borderLeftWidth: 2.5, borderRightWidth: 2.5, borderColor: Colors.ink },
+  sheetTitle:        { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.xl, fontWeight: FontWeight.black, marginBottom: Spacing.sm },
+  sheetOption:       { paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm, borderRadius: BorderRadius.sm },
+  sheetOptionPressed:{ backgroundColor: Colors.sun + '44' },
+  sheetOptionText:   { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.bold },
 });

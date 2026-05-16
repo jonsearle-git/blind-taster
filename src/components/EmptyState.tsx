@@ -26,17 +26,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily:   FontFamily.heading,
-    color:        Colors.textPrimary,
+    color:        Colors.ink,
     fontSize:     FontSize.lg,
     fontWeight:   FontWeight.black,
     textAlign:    'center',
     marginBottom: Spacing.sm,
+    opacity:      0.7,
   },
   message: {
     fontFamily: FontFamily.body,
-    color:      Colors.textSecondary,
+    color:      Colors.ink,
     fontSize:   FontSize.md,
     textAlign:  'center',
     lineHeight: FontSize.md * 1.5,
+    opacity:    0.55,
   },
 });

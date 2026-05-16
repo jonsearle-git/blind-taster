@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text } from 'react-native';
 import { Colors } from '../../constants/colors';
-import { FontSize, FontWeight } from '../../constants/typography';
-import { Spacing } from '../../constants/spacing';
+import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/spacing';
 import { QuestionResult as QuestionResultType } from '../../types/results';
 
 type Props = {
@@ -15,14 +15,16 @@ export function QuestionResult({ result }: Props): React.ReactElement {
     <View style={[styles.container, correct ? styles.correct : styles.incorrect]}>
       <View style={styles.header}>
         <Text style={styles.prompt}>{result.prompt}</Text>
-        <Text style={[styles.points, correct ? styles.pointsCorrect : styles.pointsWrong]}>
-          {correct ? `+${result.pointsAwarded}` : '0'}
-        </Text>
+        <View style={[styles.pointsBadge, { backgroundColor: correct ? Colors.mint : Colors.melon + '33' }]}>
+          <Text style={[styles.points, { color: correct ? Colors.ink : Colors.melon }]}>
+            {correct ? `+${result.pointsAwarded}` : '0'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.answers}>
-        <AnswerLine label="Your answer"    value={result.playerAnswerLabel} />
-        <AnswerLine label="Correct answer" value={result.correctAnswerLabel} correct />
+        <AnswerLine label="Your answer" value={result.playerAnswerLabel} />
+        <AnswerLine label="Correct" value={result.correctAnswerLabel} correct={correct} />
       </View>
     </View>
   );
@@ -37,7 +39,7 @@ type AnswerLineProps = {
 function AnswerLine({ label, value, correct = false }: AnswerLineProps): React.ReactElement {
   return (
     <View style={styles.answerLine}>
-      <Text style={styles.answerLabel}>{label}:</Text>
+      <Text style={styles.answerLabel}>{label}</Text>
       <Text style={[styles.answerValue, correct && styles.answerValueCorrect]}>{value}</Text>
     </View>
   );
@@ -45,14 +47,16 @@ function AnswerLine({ label, value, correct = false }: AnswerLineProps): React.R
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius:    Spacing.sm,
+    borderRadius:    BorderRadius.md,
     padding:         Spacing.md,
     gap:             Spacing.sm,
-    borderLeftWidth: 3,
-    backgroundColor: Colors.surface,
+    borderLeftWidth: 8,
+    backgroundColor: Colors.cream,
+    borderWidth:     2.5,
+    borderColor:     Colors.ink,
   },
-  correct:   { borderLeftColor: Colors.success },
-  incorrect: { borderLeftColor: Colors.error },
+  correct:   { borderLeftColor: Colors.mint },
+  incorrect: { borderLeftColor: Colors.melon },
   header: {
     flexDirection:  'row',
     justifyContent: 'space-between',
@@ -60,34 +64,46 @@ const styles = StyleSheet.create({
     gap:            Spacing.sm,
   },
   prompt: {
-    flex:       1,
-    color:      Colors.textPrimary,
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.medium,
+    flex:        1,
+    fontFamily:  FontFamily.heading,
+    color:       Colors.ink,
+    fontSize:    FontSize.sm,
+    fontWeight:  FontWeight.black,
+    lineHeight:  FontSize.sm * 1.3,
+  },
+  pointsBadge: {
+    borderRadius:      BorderRadius.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical:   2,
+    borderWidth:       2,
+    borderColor:       Colors.ink,
   },
   points: {
-    fontSize:   FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontFamily:    FontFamily.heading,
+    fontSize:      FontSize.sm,
+    fontWeight:    FontWeight.black,
+    letterSpacing: 0.3,
   },
-  pointsCorrect: { color: Colors.success },
-  pointsWrong:   { color: Colors.textDisabled },
-  answers:       { gap: Spacing.xs },
-  answerLine: {
-    flexDirection: 'row',
-    gap:           Spacing.sm,
-  },
+  answers:    { gap: Spacing.xs, marginTop: Spacing.xs },
+  answerLine: { gap: 4 },
   answerLabel: {
-    color:    Colors.textSecondary,
-    fontSize: FontSize.sm,
-    minWidth: 100,
+    fontFamily:    FontFamily.body,
+    color:         Colors.ink,
+    fontSize:      FontSize.xs,
+    fontWeight:    FontWeight.black,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    opacity:       0.6,
   },
   answerValue: {
-    color:    Colors.textPrimary,
-    fontSize: FontSize.sm,
-    flex:     1,
+    fontFamily: FontFamily.body,
+    color:      Colors.ink,
+    fontSize:   FontSize.sm,
+    fontWeight: FontWeight.medium,
   },
   answerValueCorrect: {
-    color:      Colors.success,
-    fontWeight: FontWeight.bold,
+    fontFamily: FontFamily.heading,
+    color:      Colors.melon,
+    fontWeight: FontWeight.black,
   },
 });

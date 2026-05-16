@@ -193,28 +193,36 @@ export default function HostGameScreen(): React.ReactElement {
     return (
       <ScreenContainer noPadding>
         <Banner title="Results" />
-        <View style={styles.resultsInner}>
-          <View style={styles.winner}>
-            <Text style={styles.winnerLabel}>Winner</Text>
-            <Text style={styles.winnerName}>{gameResults.winner.name}</Text>
-            <Text style={styles.winnerScore}>{gameResults.winner.score} pts</Text>
-          </View>
-          <Divider />
-          <FlatList
-            data={gameResults.players}
-            keyExtractor={(item) => item.player.id}
-            ItemSeparatorComponent={() => <Divider spacing={Spacing.xs} />}
-            renderItem={({ item, index }) => (
-              <PlayerResultSection
-                result={item}
-                highlight={index === 0}
-                expanded={expandedResult === item.player.id}
-                onToggle={() => setExpandedResult(expandedResult === item.player.id ? null : item.player.id)}
-              />
-            )}
-          />
-        </View>
-        <Button label="Done" onPress={handleDone} style={styles.doneButton} />
+        <FlatList
+          contentContainerStyle={styles.resultsInner}
+          data={gameResults.players}
+          keyExtractor={(item) => item.player.id}
+          ListHeaderComponent={
+            <View style={styles.trophyOuter}>
+              {/* Rotated wrapper so shadow sibling rotates with card */}
+              <View style={styles.winnerRotated}>
+                <View style={styles.winnerShadow} />
+                <View style={styles.winnerCard}>
+                  <Text style={styles.winnerTopLabel}>Winner</Text>
+                  <Text style={styles.winnerName}>{gameResults.winner.name}</Text>
+                  <Text style={styles.winnerScore}>{gameResults.winner.score} pts</Text>
+                </View>
+              </View>
+              <View style={styles.sparkleA} pointerEvents="none"><Sparkle size={30} color={Colors.melon} /></View>
+              <View style={styles.sparkleB} pointerEvents="none"><Sparkle size={22} color={Colors.mint} /></View>
+              <View style={styles.sparkleC} pointerEvents="none"><Sparkle size={18} color={Colors.ocean} /></View>
+            </View>
+          }
+          renderItem={({ item, index }) => (
+            <PlayerResultSection
+              result={item}
+              highlight={index === 0}
+              expanded={expandedResult === item.player.id}
+              onToggle={() => setExpandedResult(expandedResult === item.player.id ? null : item.player.id)}
+            />
+          )}
+          ListFooterComponent={<View style={styles.doneButton}><Button label="Done" onPress={handleDone} /></View>}
+        />
       </ScreenContainer>
     );
   }
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
   // Shared
   scroll: { flex: 1 },
   inner:  { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.md },
-  footer: { gap: Spacing.sm, padding: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 1.5, borderTopColor: Colors.border, backgroundColor: Colors.background },
+  footer: { gap: Spacing.sm, padding: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 2.5, borderTopColor: Colors.ink, backgroundColor: Colors.cream },
 
   // Lobby
   lobbySafe: { flex: 1, backgroundColor: Colors.sun },
@@ -379,39 +387,46 @@ const styles = StyleSheet.create({
   lobbySection:      { gap: Spacing.sm },
   lobbySectionLabel: { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.lg, fontWeight: FontWeight.black, letterSpacing: -0.2 },
   cardList:          { gap: Spacing.sm },
-  lobbyJoinRow:      { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, borderWidth: 2.5, borderColor: Colors.border, padding: Spacing.sm },
+  lobbyJoinRow:      { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.cream, borderRadius: BorderRadius.md, borderWidth: 2.5, borderColor: Colors.ink, padding: Spacing.sm, shadowColor: Colors.ink, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3 },
   lobbyJoinAvatar:   { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.sun, borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
   lobbyJoinAvatarText: { fontFamily: FontFamily.display, color: Colors.ink, fontSize: FontSize.lg, fontWeight: FontWeight.black },
-  lobbyJoinName:     { flex: 1, fontFamily: FontFamily.body, color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  lobbyJoinName:     { flex: 1, fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.black },
   lobbyJoinActions:  { flexDirection: 'row', gap: Spacing.sm },
   lobbyJoinBtn:      { paddingVertical: Spacing.xs, minHeight: 40 },
-  iconBtnAdmit:      { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.success, borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
-  iconBtnDeny:       { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.error,   borderWidth: 2, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
-  lobbyFooter:       { padding: Spacing.md, gap: Spacing.sm },
+  iconBtnAdmit:      { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.mint, borderWidth: 2.5, borderColor: Colors.ink, shadowColor: Colors.ink, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2, alignItems: 'center', justifyContent: 'center' },
+  iconBtnDeny:       { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.melon, borderWidth: 2.5, borderColor: Colors.ink, shadowColor: Colors.ink, shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 2, alignItems: 'center', justifyContent: 'center' },
+  lobbyFooter:       { padding: Spacing.md, gap: Spacing.sm, backgroundColor: Colors.cream, borderTopWidth: 2.5, borderTopColor: Colors.ink },
   footerButton:      { width: '100%' },
 
   // Round
-  pendingSection:  { gap: Spacing.xs, paddingBottom: Spacing.xs, borderBottomWidth: 1.5, borderBottomColor: Colors.border, marginBottom: Spacing.xs },
+  pendingSection:  { gap: Spacing.xs, paddingBottom: Spacing.xs, borderBottomWidth: 1.5, borderBottomColor: Colors.ink + '33', marginBottom: Spacing.xs },
   playersHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  playersHeading:  { fontFamily: FontFamily.body, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textSecondary, letterSpacing: 1, textTransform: 'uppercase' },
+  playersHeading:  { fontFamily: FontFamily.body, fontSize: FontSize.xs, fontWeight: FontWeight.black, color: Colors.ink, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7 },
   sectionHeader:   { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm },
-  sectionTitle:    { fontFamily: FontFamily.body, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textSecondary, paddingVertical: Spacing.xs },
+  sectionTitle:    { fontFamily: FontFamily.heading, fontSize: FontSize.md, fontWeight: FontWeight.black, color: Colors.ink, paddingVertical: Spacing.xs },
   joinRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.xs, gap: Spacing.sm },
-  joinName:        { flex: 1, fontFamily: FontFamily.body, color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  joinName:        { flex: 1, fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.black },
   joinActions:     { flexDirection: 'row', gap: Spacing.sm },
-  admitBtn:        { backgroundColor: Colors.primary, borderRadius: BorderRadius.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
-  admitText:       { color: Colors.textPrimary, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  denyBtn:         { backgroundColor: Colors.surfaceElevated, borderRadius: BorderRadius.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 1.5, borderColor: Colors.border },
-  denyText:        { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  admitBtn:        { backgroundColor: Colors.mint, borderRadius: BorderRadius.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 2, borderColor: Colors.ink },
+  admitText:       { color: Colors.ink, fontSize: FontSize.sm, fontWeight: FontWeight.black },
+  denyBtn:         { backgroundColor: Colors.cream, borderRadius: BorderRadius.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 2, borderColor: Colors.ink },
+  denyText:        { color: Colors.ink, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
 
   // Results
-  resultsInner: { flex: 1, padding: Spacing.md, gap: Spacing.md },
-  doneButton:   { margin: Spacing.md },
-  winner:       { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.lg },
-  winnerLabel:  { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
-  winnerName:   { color: Colors.textPrimary, fontSize: FontSize.hero, fontWeight: FontWeight.black },
-  winnerScore:  { color: Colors.textSecondary, fontSize: FontSize.lg },
-  breakdown:          { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.md },
-  roundBreakdown:     { gap: Spacing.sm },
-  roundBreakdownLabel: { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  resultsInner:    { padding: Spacing.md, paddingTop: Spacing.xl, gap: Spacing.md },
+  doneButton:      { paddingTop: Spacing.sm },
+  trophyOuter:     { alignSelf: 'center', position: 'relative', overflow: 'visible' as const },
+  sparkleA:        { position: 'absolute', left: -40, top: 10,   zIndex: 2 },
+  sparkleB:        { position: 'absolute', right: -36, top: 30,  zIndex: 2 },
+  sparkleC:        { position: 'absolute', left: -30, bottom: 0,  zIndex: 2 },
+  winnerRotated:   { transform: [{ rotate: '-3deg' }] },
+  winnerShadow:    { position: 'absolute', top: 8, left: 8, right: -8, bottom: -8, borderRadius: 28, backgroundColor: Colors.ink },
+  winnerCard:      { backgroundColor: Colors.melon, borderRadius: 28, borderWidth: 3, borderColor: Colors.ink, paddingTop: 12, paddingBottom: 8, paddingHorizontal: 20, alignItems: 'center', gap: 4 },
+  winnerTopLabel:  { fontFamily: FontFamily.body, color: Colors.cream, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 2, textTransform: 'uppercase' },
+  winnerPosition:  { fontFamily: FontFamily.display, color: Colors.cream, fontSize: 88, fontWeight: FontWeight.black, letterSpacing: -3, lineHeight: 88 },
+  winnerName:      { fontFamily: FontFamily.display, color: Colors.cream, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: -0.5 },
+  winnerScore:     { fontFamily: FontFamily.display, color: Colors.cream, fontSize: FontSize.xl, fontWeight: FontWeight.black, marginTop: 4 },
+  breakdown:            { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.md },
+  roundBreakdown:       { gap: Spacing.sm },
+  roundBreakdownLabel:  { fontFamily: FontFamily.body, color: Colors.melon, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 1, textTransform: 'uppercase' },
 });

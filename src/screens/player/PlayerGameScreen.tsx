@@ -46,25 +46,38 @@ function ordinal(n: number): string {
 
 type RoundSectionProps = { round: RoundResult; expanded: boolean; onToggle: () => void };
 
+const ROUND_BADGE_COLORS = [Colors.mint, Colors.sun, Colors.melon, Colors.ocean, Colors.plum] as const;
+const ROUND_BADGE_TEXT   = [Colors.ink, Colors.ink, Colors.cream, Colors.cream, Colors.cream] as const;
+
 function RoundSection({ round, expanded, onToggle }: RoundSectionProps): React.ReactElement {
+  const badgeBg   = ROUND_BADGE_COLORS[(round.roundNumber - 1) % ROUND_BADGE_COLORS.length];
+  const badgeText = ROUND_BADGE_TEXT[(round.roundNumber - 1) % ROUND_BADGE_TEXT.length];
   return (
-    <View>
-      <Pressable onPress={onToggle} style={styles.roundHeader} accessibilityRole="button">
-        <View style={styles.roundHeaderLeft}>
-          <Text style={styles.roundLabel}>
-            Round {round.roundNumber}{round.roundLabel !== null ? ` — ${round.roundLabel}` : ''}
-          </Text>
-        </View>
-        <Text style={styles.roundScore}>+{round.roundScore} pts</Text>
-        <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
-      </Pressable>
-      {expanded && (
-        <View style={styles.breakdown}>
-          {round.questionResults.map((qr) => (
-            <QuestionResultComponent key={qr.questionId} result={qr} />
-          ))}
-        </View>
-      )}
+    <View style={styles.roundSectionWrap}>
+      <View style={styles.roundSectionShadow} />
+      <View style={styles.roundSectionCard}>
+        <Pressable onPress={onToggle} style={styles.roundHeader} accessibilityRole="button">
+          <View style={[styles.roundBadge, { backgroundColor: badgeBg }]}>
+            <Text style={[styles.roundBadgeText, { color: badgeText }]}>R{round.roundNumber}</Text>
+          </View>
+          <View style={styles.roundHeaderLeft}>
+            <Text style={styles.roundLabel} numberOfLines={1}>
+              {round.roundLabel !== null ? round.roundLabel : `Round ${round.roundNumber}`}
+            </Text>
+          </View>
+          <View style={styles.roundScoreBadge}>
+            <Text style={styles.roundScore}>+{round.roundScore}</Text>
+          </View>
+          <Text style={styles.chevron}>{expanded ? '▴' : '▾'}</Text>
+        </Pressable>
+        {expanded && (
+          <View style={styles.breakdown}>
+            {round.questionResults.map((qr) => (
+              <QuestionResultComponent key={qr.questionId} result={qr} />
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -227,21 +240,28 @@ export default function PlayerGameScreen(): React.ReactElement {
       <ScreenContainer noPadding>
         <Banner title="Your Results" />
         <FlatList
-          ListFooterComponent={<Button label="Done" onPress={handleDone} style={styles.doneButton} />}
+          contentContainerStyle={styles.list}
           data={myResult.rounds}
           keyExtractor={(item) => String(item.roundNumber)}
           ListHeaderComponent={
-            <>
-              <View style={styles.hero}>
-                {isWinner && <Text style={styles.winnerBadge}>Winner!</Text>}
-                <Text style={styles.position}>{ordinal(myResult.position)}</Text>
-                <Text style={styles.heroScore}>{myResult.totalScore} pts</Text>
+            <View style={styles.hero}>
+              {/* Trophy sticker — stars overlap card edges */}
+              <View style={styles.trophyOuter}>
+                <View style={styles.trophyRotated}>
+                  <View style={styles.trophyShadow} />
+                  <View style={[styles.trophyCard, isWinner && styles.trophyCardWinner]}>
+                    {isWinner && <Text style={styles.trophyTopLabel}>Winner</Text>}
+                    <Text style={styles.trophyPosition}>{ordinal(myResult.position)}</Text>
+                    <Text style={styles.trophyScore}>{myResult.totalScore} pts</Text>
+                  </View>
+                </View>
+                <View style={styles.sparkleA} pointerEvents="none"><Sparkle size={30} color={Colors.melon} /></View>
+                <View style={styles.sparkleB} pointerEvents="none"><Sparkle size={22} color={Colors.mint}  /></View>
+                <View style={styles.sparkleC} pointerEvents="none"><Sparkle size={18} color={Colors.ocean} /></View>
               </View>
-              <Divider />
-            </>
+              <Text style={styles.roundByRoundLabel}>Round by round</Text>
+            </View>
           }
-          ItemSeparatorComponent={() => <Divider spacing={Spacing.xs} />}
-          contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <RoundSection
               round={item}
@@ -249,6 +269,7 @@ export default function PlayerGameScreen(): React.ReactElement {
               onToggle={() => setExpandedRound(expandedRound === item.roundNumber ? null : item.roundNumber)}
             />
           )}
+          ListFooterComponent={<View style={styles.doneButton}><Button label="Done" onPress={handleDone} /></View>}
         />
         <KickedOverlay visible={state.isKicked} />
       </ScreenContainer>
@@ -263,7 +284,16 @@ export default function PlayerGameScreen(): React.ReactElement {
         <ScrollView contentContainerStyle={styles.roundInner} keyboardShouldPersistTaps="handled">
           {isRevealed && roundResults ? (
             <View style={styles.section}>
-              {roundLabel ? <Text style={styles.roundRevealLabel}>{roundLabel}</Text> : null}
+              {/* Big reveal card */}
+              {roundLabel ? (
+                <View style={styles.revealShadowWrap}>
+                  <View style={styles.revealShadow} />
+                  <View style={styles.revealCard}>
+                    <Text style={styles.revealCardLabel}>The answer</Text>
+                    <Text style={styles.revealCardText}>{roundLabel}</Text>
+                  </View>
+                </View>
+              ) : null}
               <Text style={styles.sectionLabel}>Round Results</Text>
               <View style={styles.resultsList}>
                 {roundResults.map((qr) => (
@@ -434,33 +464,57 @@ const styles = StyleSheet.create({
   crewLabel:        { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.lg, fontWeight: FontWeight.black, letterSpacing: -0.2 },
   playerList:       { gap: Spacing.sm },
   emptyText:        { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.sm, textAlign: 'center', paddingVertical: Spacing.md, opacity: 0.65 },
-  lobbyFooter:      { padding: Spacing.md },
+  lobbyFooter:      { padding: Spacing.md, backgroundColor: Colors.cream, borderTopWidth: 2.5, borderTopColor: Colors.ink },
   leaveButton:      { width: '100%' },
 
   // Round
   roundInner:       { flexGrow: 1, padding: Spacing.md, gap: Spacing.lg },
   section:          { gap: Spacing.xl },
   questionBlock:    { gap: Spacing.sm },
-  questionIndex:    { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
-  roundRevealLabel: { color: Colors.textPrimary, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: -0.5, textAlign: 'center' },
-  sectionLabel:     { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
+  questionIndex:    { fontFamily: FontFamily.body, color: Colors.melon, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 1, textTransform: 'uppercase' },
+  roundRevealLabel: { fontFamily: FontFamily.display, color: Colors.ink, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: -0.5, textAlign: 'center' },
+  sectionLabel:     { fontFamily: FontFamily.body, color: Colors.melon, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 1.5, textTransform: 'uppercase' },
   waitingSection:   { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingVertical: Spacing.xxl },
-  waitingText:      { color: Colors.textSecondary, fontSize: FontSize.md },
+  waitingText:      { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.md, opacity: 0.7 },
   resultsList:      { gap: Spacing.md },
-  roundFooter:      { padding: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 1.5, borderTopColor: Colors.border, backgroundColor: Colors.background },
+  roundFooter:      { padding: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 2.5, borderTopColor: Colors.ink, backgroundColor: Colors.cream },
+
+  // Reveal card
+  revealShadowWrap: { position: 'relative' },
+  revealShadow:     { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, borderRadius: BorderRadius.lg, backgroundColor: Colors.ink },
+  revealCard:       { backgroundColor: Colors.plum, borderRadius: BorderRadius.lg, borderWidth: 2.5, borderColor: Colors.ink, padding: Spacing.lg, gap: Spacing.xs },
+  revealCardLabel:  { fontFamily: FontFamily.body, color: Colors.sun, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 2, textTransform: 'uppercase' },
+  revealCardText:   { fontFamily: FontFamily.display, color: Colors.cream, fontSize: FontSize.xxl, fontWeight: FontWeight.black, letterSpacing: -0.5, lineHeight: FontSize.xxl * 1.1 },
 
   // Results
-  list:             { paddingBottom: Spacing.xxl },
-  doneButton:       { margin: Spacing.md },
-  hero:             { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl, paddingHorizontal: Spacing.md },
-  winnerBadge:      { color: Colors.gold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 2 },
-  position:         { color: Colors.textPrimary, fontSize: FontSize.hero, fontWeight: FontWeight.black },
-  heroScore:        { color: Colors.textSecondary, fontSize: FontSize.xl },
-  roundHeader:      { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, gap: Spacing.sm },
-  roundHeaderLeft:  { flex: 1 },
-  roundLabel:       { color: Colors.textPrimary, fontSize: FontSize.md, fontWeight: FontWeight.medium },
-  roundScore:       { color: Colors.success, fontSize: FontSize.md, fontWeight: FontWeight.bold },
-  chevron:          { color: Colors.textDisabled, fontSize: FontSize.sm },
-  breakdown:        { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.md },
-  fallback:         { color: Colors.textSecondary, fontSize: FontSize.md, textAlign: 'center' },
+  list:               { padding: Spacing.md, gap: Spacing.md },
+  doneButton:         { padding: Spacing.md },
+  hero:               { gap: Spacing.md, paddingBottom: Spacing.md },
+  trophyOuter:        { alignSelf: 'center', position: 'relative' },
+  sparkleA:           { position: 'absolute', left: -40, top: 10,   zIndex: 2 },
+  sparkleB:           { position: 'absolute', right: -36, top: 30,  zIndex: 2 },
+  sparkleC:           { position: 'absolute', left: -30, bottom: 0,  zIndex: 2 },
+  trophyShadowWrap:   {},
+  trophyRotated:      { transform: [{ rotate: '-3deg' }] },
+  trophyShadow:       { position: 'absolute', top: 8, left: 8, right: -8, bottom: -8, borderRadius: 28, backgroundColor: Colors.ink },
+  trophyCard:         { backgroundColor: Colors.sun, borderRadius: 28, borderWidth: 3, borderColor: Colors.ink, paddingTop: 12, paddingBottom: 8, paddingHorizontal: 20, alignItems: 'center', gap: 4 },
+  trophyCardWinner:   { backgroundColor: Colors.melon },
+  trophyTopLabel:     { fontFamily: FontFamily.body, color: Colors.cream, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 2, textTransform: 'uppercase' },
+  trophyPosition:     { fontFamily: FontFamily.display, color: Colors.cream, fontSize: 88, fontWeight: FontWeight.black, letterSpacing: -3, lineHeight: 88 },
+  trophyScore:        { fontFamily: FontFamily.display, color: Colors.cream, fontSize: FontSize.xl, fontWeight: FontWeight.black, letterSpacing: -0.4, marginTop: Spacing.xs },
+  roundByRoundLabel:  { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.xs, fontWeight: FontWeight.black, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7 },
+
+  roundSectionWrap:   { position: 'relative' },
+  roundSectionShadow: { position: 'absolute', top: 3, left: 3, right: -3, bottom: -3, borderRadius: BorderRadius.md, backgroundColor: Colors.ink },
+  roundSectionCard:   { backgroundColor: Colors.cream, borderRadius: BorderRadius.md, borderWidth: 2.5, borderColor: Colors.ink, overflow: 'hidden' },
+  roundHeader:        { flexDirection: 'row', alignItems: 'center', padding: Spacing.sm, gap: Spacing.sm },
+  roundBadge:         { width: 42, height: 42, borderRadius: BorderRadius.xs, borderWidth: 2.5, borderColor: Colors.ink, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  roundBadgeText:     { fontFamily: FontFamily.display, fontSize: FontSize.sm, fontWeight: FontWeight.black },
+  roundHeaderLeft:    { flex: 1, minWidth: 0 },
+  roundLabel:         { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.black },
+  roundScoreBadge:    { backgroundColor: Colors.mint, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderWidth: 2, borderColor: Colors.ink },
+  roundScore:         { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.sm, fontWeight: FontWeight.black },
+  chevron:            { color: Colors.ink, fontSize: FontSize.md, opacity: 0.5 },
+  breakdown:          { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.sm, gap: Spacing.sm },
+  fallback:           { fontFamily: FontFamily.body, color: Colors.ink, fontSize: FontSize.md, textAlign: 'center', opacity: 0.6 },
 });

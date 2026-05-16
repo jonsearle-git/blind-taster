@@ -1,6 +1,6 @@
 // Candy Pop palette — Y2K light theme
 const palette = {
-  cream:  '#FFF4E0',
+  cream:  '#F5E6C8',
   sun:    '#FFD166',
   melon:  '#EF476F',
   mint:   '#06D6A0',

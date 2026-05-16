@@ -52,9 +52,10 @@ export function SliderBuilder({ min, max, step, onChange }: Props): React.ReactE
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
   label: {
-    color:      Colors.textSecondary,
+    color:      Colors.ink,
     fontSize:   FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.black,
+    opacity:    0.6,
   },
   row:   { flexDirection: 'row', gap: Spacing.sm },
   field: { flex: 1 },
@@ -71,15 +72,15 @@ const styles = StyleSheet.create({
     height:       22,
     borderRadius: 4,
     borderWidth:  2,
-    borderColor:  Colors.border,
+    borderColor:  Colors.ink,
     alignItems:   'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor:     Colors.primary,
+    backgroundColor: Colors.melon,
+    borderColor:     Colors.melon,
   },
-  checkmark: { color: Colors.textPrimary, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  checkLabel: { color: Colors.textPrimary, fontSize: FontSize.md },
+  checkmark: { color: Colors.cream, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  checkLabel: { color: Colors.ink, fontSize: FontSize.md },
 
 });

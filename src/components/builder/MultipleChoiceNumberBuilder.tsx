@@ -42,7 +42,7 @@ export function MultipleChoiceNumberBuilder({ options, onChange }: Props): React
           <IconButton
             icon="✕"
             onPress={() => removeOption(option.id)}
-            color={Colors.error}
+            color={Colors.melon}
             accessibilityLabel={`Remove option ${index + 1}`}
             disabled={options.length <= 2}
           />
@@ -58,9 +58,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   label: {
-    color:      Colors.textSecondary,
+    color:      Colors.ink,
     fontSize:   FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.black,
+    opacity:    0.6,
   },
   optionRow: {
     flexDirection: 'row',

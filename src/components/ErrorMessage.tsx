@@ -13,7 +13,7 @@ export function ErrorMessage({ message }: Props): React.ReactElement {
 const styles = StyleSheet.create({
   text: {
     fontFamily:  FontFamily.bodyBold,
-    color:       Colors.error,
+    color:       Colors.melon,
     fontSize:    FontSize.sm,
     fontWeight:  FontWeight.bold,
   },
