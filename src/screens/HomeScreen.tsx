@@ -48,9 +48,11 @@ export default function HomeScreen(): React.ReactElement {
       navigation.dispatch(CommonActions.reset({ index: 1, routes: [
         { name: 'Home' },
         { name: 'Host', state: { routes: [{ name: 'HostGame', params: {
-          questionnaireId: savedHostSession.questionnaireId,
-          rounds:          savedHostSession.rounds,
-          savedRoomCode:   savedHostSession.roomCode,
+          questionnaireId:  savedHostSession.questionnaireId,
+          filteredQuestions: savedHostSession.filteredQuestions,
+          revealMode:        savedHostSession.revealMode,
+          rounds:            savedHostSession.rounds,
+          savedRoomCode:     savedHostSession.roomCode,
         } }] } },
       ] }));
     } else if (isActivePlayer) {

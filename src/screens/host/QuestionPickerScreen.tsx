@@ -82,12 +82,14 @@ export default function QuestionPickerScreen(): React.ReactElement {
       const rounds: Round[] = [{ number: 1, label: null, correctAnswers: [] }];
       const gameId = uuidv4();
       await saveGame({
-        id:              gameId,
-        name:            filteredQuestionnaire.name,
-        questionnaireId: filteredQuestionnaire.id,
+        id:                gameId,
+        name:              filteredQuestionnaire.name,
+        questionnaireId:   filteredQuestionnaire.id,
+        filteredQuestions: filteredQuestionnaire.questions,
+        revealMode,
         rounds,
-        createdAt:       Date.now(),
-        updatedAt:       Date.now(),
+        createdAt:         Date.now(),
+        updatedAt:         Date.now(),
       });
       dispatch({ type: 'RESET' });
       dispatch({ type: 'SET_ACTIVE_GAME_ID', payload: gameId });

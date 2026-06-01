@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Round } from '../types/game';
+import { Question } from '../types/questionnaire';
+import { RevealMode } from '../constants/gameConstants';
 import { useGameState } from './useGameState';
 import { useGameContext } from '../context/GameContext';
 import { signRoomCode } from '../lib/roomSigning';
@@ -11,16 +13,18 @@ function generateRoomCode(): string {
 }
 
 type Options = {
-  questionnaireId: string;
-  rounds:          Round[];
-  savedRoomCode?:  string;
+  questionnaireId:   string;
+  filteredQuestions: Question[];
+  revealMode:        RevealMode;
+  rounds:            Round[];
+  savedRoomCode?:    string;
 };
 
 type HostSetup = {
   roomCode: string;
 };
 
-export function useHostSetup({ questionnaireId, rounds, savedRoomCode }: Options): HostSetup {
+export function useHostSetup({ questionnaireId, filteredQuestions, revealMode, rounds, savedRoomCode }: Options): HostSetup {
   const { connect }       = useGameContext();
   const { handleMessage } = useGameState();
 
@@ -30,7 +34,7 @@ export function useHostSetup({ questionnaireId, rounds, savedRoomCode }: Options
     let cancelled = false;
     signRoomCode(roomCode).then((sig) => {
       if (cancelled) return;
-      void saveHostSession({ questionnaireId, rounds, roomCode });
+      void saveHostSession({ questionnaireId, filteredQuestions, revealMode, rounds, roomCode });
       void connect({ roomCode, isHost: true, sig, onMessage: handleMessage });
     });
     return () => { cancelled = true; };

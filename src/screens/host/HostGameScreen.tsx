@@ -133,7 +133,7 @@ export default function HostGameScreen(): React.ReactElement {
   const { admitPlayer, denyPlayer, startGame, revealAnswers, updateRound, advanceRound, endGame, kickPlayer, resyncPlayers } = useHostControls();
   // After reconnect, the server's host_state message provides authoritative rounds (with correctAnswers).
   const rounds = state.hostRounds ?? paramRounds;
-  const { roomCode }         = useHostSetup({ questionnaireId, rounds: paramRounds, savedRoomCode });
+  const { roomCode }         = useHostSetup({ questionnaireId, filteredQuestions: filteredQuestions ?? [], revealMode: revealMode ?? RevealMode.AfterEachRound, rounds: paramRounds, savedRoomCode });
   const { players, sorted, waiting, answered, currentRound, totalRounds, gameName, roundPhase, isLastRound, isAnswering } = useHostGame();
 
   const [showAbandon,    setShowAbandon]    = useState(false);

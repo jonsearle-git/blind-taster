@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Round } from '../types/game';
+import type { Question } from '../types/questionnaire';
+import { RevealMode } from '../constants/gameConstants';
 
 const KEY = '@blindtaster/host-session';
 
@@ -7,9 +9,11 @@ const KEY = '@blindtaster/host-session';
 // rounds are kept so the host nav params have what they need until the server's
 // host_state message arrives with the authoritative copy.
 export type HostSession = {
-  questionnaireId: string;
-  rounds:          Round[];
-  roomCode:        string;
+  questionnaireId:   string;
+  filteredQuestions: Question[];
+  revealMode:        RevealMode;
+  rounds:            Round[];
+  roomCode:          string;
 };
 
 export async function saveHostSession(session: HostSession): Promise<void> {
