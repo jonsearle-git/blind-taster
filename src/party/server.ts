@@ -1,6 +1,6 @@
 import * as Party from 'partyserver';
 import { routePartykitRequest } from 'partyserver';
-import { GamePhase, PlayerStatus, QuestionType, RoundPhase } from '../constants/gameConstants';
+import { GamePhase, PlayerStatus, QuestionType, RevealMode, RoundPhase } from '../constants/gameConstants';
 import type { PlayerRoundAnswers } from '../types/answer';
 import type { PlayerScore } from '../types/results';
 import type { Round } from '../types/game';
@@ -25,6 +25,7 @@ interface Env {
   main:              DurableObjectNamespace;
   ROOM_SIGNING_KEY:  string;
   CONNECT_LIMITER:   RateLimit;
+  GEMINI_API_KEY:    string;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,6 +59,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     roundHistory:    new Map(),
     hostClientId:    null,
     pausedFromPhase: null,
+    revealMode:      RevealMode.AfterEachRound,
   };
 
   // Lifecycle ────────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     } catch { return; }
 
     const cs = sender.state as ConnState | null;
-    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','kick_player','end_game','lobby_init']);
+    const HOST_ONLY    = new Set(['admit_player','deny_player','start_game','reveal_answers','resync_players','advance_round','update_round','kick_player','end_game','lobby_init']);
     const PLAYER_ONLY  = new Set(['submit_answers', 'sync_state']);
     const PENDING_ONLY = new Set(['request_join']);
     if (HOST_ONLY.has(msg.type)    && cs?.role !== 'host')    return;
@@ -174,12 +176,13 @@ export class BlindTasterServer extends Party.Server<Env> {
       case 'lobby_init':      return this.handleLobbyInit(msg.payload.questionnaire);
       case 'admit_player':    return this.handleAdmit(msg.payload.playerId);
       case 'deny_player':     return this.handleDeny(msg.payload.playerId);
-      case 'start_game':      return this.handleStartGame(msg.payload.questionnaire, msg.payload.rounds);
+      case 'start_game':      return this.handleStartGame(msg.payload.questionnaire, msg.payload.rounds, msg.payload.revealMode);
       case 'submit_answers':  return this.handleSubmitAnswers(sender, msg.payload);
       case 'sync_state':      return this.send(sender, { type: 'game_state', payload: buildGameState(this.s, this.name) });
       case 'reveal_answers':  return this.handleRevealAnswers();
       case 'resync_players':  return this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
       case 'advance_round':   return this.handleAdvanceRound();
+      case 'update_round':    return this.handleUpdateRound(msg.payload.round);
       case 'kick_player':     return this.handleKick(msg.payload.playerId);
       case 'end_game':        return this.handleEndGame();
     }
@@ -243,6 +246,7 @@ export class BlindTasterServer extends Party.Server<Env> {
       roundHistory:    new Map(),
       hostClientId:    null,
       pausedFromPhase: null,
+      revealMode:      RevealMode.AfterEachRound,
     };
   }
 
@@ -299,7 +303,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     if (conn) this.send(conn, { type: 'you_were_denied' });
   }
 
-  private handleStartGame(questionnaire: Questionnaire, rounds: Round[]): void {
+  private handleStartGame(questionnaire: Questionnaire, rounds: Round[], revealMode: RevealMode): void {
     if (!questionnaire || !Array.isArray(rounds)) return;
     if (questionnaire.questions.length > 20) return;
     if (rounds.length > 20 || rounds.length === 0) return;
@@ -315,6 +319,7 @@ export class BlindTasterServer extends Party.Server<Env> {
     this.s.phase          = GamePhase.InRound;
     this.s.roundPhase     = RoundPhase.Answering;
     this.s.roundAnswers   = new Map();
+    this.s.revealMode     = revealMode;
     void this.persist();
     const roundsForPlayer = rounds.map((r) => ({ number: r.number, label: null }));
     this.broadcastToPlayers({ type: 'game_started', payload: { questionnaire, rounds: roundsForPlayer } });
@@ -379,6 +384,16 @@ export class BlindTasterServer extends Party.Server<Env> {
     void this.persist();
     this.broadcastToAdmitted({ type: 'round_started', payload: { roundNumber: this.s.currentRound } });
     this.broadcastToAdmitted({ type: 'game_state', payload: buildGameState(this.s, this.name) });
+  }
+
+  private handleUpdateRound(round: Round): void {
+    const idx = this.s.rounds.findIndex((r) => r.number === round.number);
+    if (idx === -1) {
+      this.s.rounds.push(round); // new round — append
+    } else {
+      this.s.rounds[idx] = round; // existing round — overwrite
+    }
+    void this.persist();
   }
 
   private handleKick(playerId: string): void {
@@ -457,8 +472,70 @@ export class BlindTasterServer extends Party.Server<Env> {
 
 // Worker entry point ─────────────────────────────────────────────────────────
 
+// ─── Gemini proxy ────────────────────────────────────────────────────────────
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+const SYSTEM_INSTRUCTION = `You are a blind tasting expert. Analyse the product label in the image and answer the questionnaire questions as accurately as possible based on what you can see.
+
+Return ONLY a valid JSON object — no markdown, no explanation:
+{
+  "label": "<product name, producer, vintage/year if visible, e.g. 'Château Margaux 2018'>",
+  "answers": [
+    // multiple_choice: { "questionId": "<id>", "type": "multiple_choice_text" or "multiple_choice_number", "selectedOptionId": "<option id>" }
+    // slider:          { "questionId": "<id>", "type": "slider_number", "value": <number> }
+    // price:           { "questionId": "<id>", "type": "price", "value": <number> }
+    // tags:            { "questionId": "<id>", "type": "tags", "tags": [["word1", "synonym1", "synonym2"], ["word2"]] } — each tag is an array of accepted synonyms (primary word first), 3-5 tags total
+    // text_input:      { "questionId": "<id>", "type": "text_input", "value": "<short answer>" }
+    // number_input:    { "questionId": "<id>", "type": "number_input", "value": <number> }
+  ]
+}`;
+
+async function handleAnalyse(req: Request, env: Env): Promise<Response> {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  if (!env.GEMINI_API_KEY) return new Response('Gemini not configured', { status: 503 });
+
+  let body: { image: string; mimeType: string; prompt: string };
+  try {
+    body = await req.json() as typeof body;
+    if (!body.image || !body.mimeType || !body.prompt) throw new Error('missing fields');
+  } catch {
+    return new Response('Invalid request body', { status: 400 });
+  }
+
+  const geminiRes = await fetch(`${GEMINI_URL}?key=${env.GEMINI_API_KEY}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: { text: SYSTEM_INSTRUCTION } },
+      contents: [{
+        parts: [
+          { text: body.prompt },
+          { inline_data: { mime_type: body.mimeType, data: body.image } },
+        ],
+      }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+    }),
+  });
+
+  if (!geminiRes.ok) {
+    const text = await geminiRes.text();
+    return new Response(`Gemini error: ${text}`, { status: 502 });
+  }
+
+  const json = await geminiRes.json();
+  return new Response(JSON.stringify(json), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
+    const url = new URL(req.url);
+
+    // Gemini proxy — host-only, no auth needed beyond being on our domain
+    if (url.pathname === '/analyse') return handleAnalyse(req, env);
+
     const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown';
     const { success } = await env.CONNECT_LIMITER.limit({ key: ip });
     if (!success) return new Response('Too many requests', { status: 429 });

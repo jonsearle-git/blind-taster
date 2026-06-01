@@ -1,20 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Questionnaire } from '../types/questionnaire';
-import {
-  getAllQuestionnaires,
-  saveQuestionnaire,
-  updateQuestionnaire,
-  deleteQuestionnaire,
-} from '../lib/database';
+import { getAllQuestionnaires } from '../lib/database';
 
 type QuestionnairesContextValue = {
   questionnaires: Questionnaire[];
   loading:        boolean;
   error:          string | null;
   reload:         () => Promise<void>;
-  save:           (q: Questionnaire) => Promise<void>;
-  update:         (q: Questionnaire) => Promise<void>;
-  remove:         (id: string) => Promise<void>;
 };
 
 const QuestionnairesContext = createContext<QuestionnairesContextValue | null>(null);
@@ -32,7 +24,7 @@ export function QuestionnairesProvider({ children }: Props): React.ReactElement 
       setError(null);
       const data = await getAllQuestionnaires();
       setQuestionnaires(data);
-    } catch (e) {
+    } catch {
       setError('Failed to load questionnaires');
     } finally {
       setLoading(false);
@@ -43,23 +35,8 @@ export function QuestionnairesProvider({ children }: Props): React.ReactElement 
     void reload();
   }, [reload]);
 
-  const save = useCallback(async (q: Questionnaire) => {
-    await saveQuestionnaire(q);
-    await reload();
-  }, [reload]);
-
-  const update = useCallback(async (q: Questionnaire) => {
-    await updateQuestionnaire(q);
-    await reload();
-  }, [reload]);
-
-  const remove = useCallback(async (id: string) => {
-    await deleteQuestionnaire(id);
-    await reload();
-  }, [reload]);
-
   return (
-    <QuestionnairesContext.Provider value={{ questionnaires, loading, error, reload, save, update, remove }}>
+    <QuestionnairesContext.Provider value={{ questionnaires, loading, error, reload }}>
       {children}
     </QuestionnairesContext.Provider>
   );

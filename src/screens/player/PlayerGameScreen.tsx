@@ -8,7 +8,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Colors } from '../../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/spacing';
-import { GamePhase, RoundPhase } from '../../constants/gameConstants';
+import { GamePhase, RevealMode, RoundPhase } from '../../constants/gameConstants';
 import { PlayerStackParamList, RootStackParamList } from '../../types/navigation';
 import { RoundResult } from '../../types/results';
 import { useGameContext } from '../../context/GameContext';
@@ -119,7 +119,8 @@ export default function PlayerGameScreen(): React.ReactElement {
   const score        = localPlayer?.score ?? 0;
   const roundResults = state.lastRoundResults;
   const roundLabel   = state.lastRoundLabel;
-  const isRevealed   = roundPhase === RoundPhase.AnswersRevealed;
+  const revealMode   = game?.revealMode ?? RevealMode.AfterEachRound;
+  const isRevealed   = roundPhase === RoundPhase.AnswersRevealed && revealMode === RevealMode.AfterEachRound;
   const gameResults  = state.gameResults;
 
   const { answers, setAnswer, clearAnswers, isComplete } = useAnswers(questions);

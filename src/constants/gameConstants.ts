@@ -17,9 +17,15 @@ export enum RoundPhase {
 export enum QuestionType {
   MultipleChoiceText   = 'multiple_choice_text',
   MultipleChoiceNumber = 'multiple_choice_number',
-  SliderNumber         = 'slider_number',
   Tags                 = 'tags',
   Price                = 'price',
+  TextInput            = 'text_input',
+  NumberInput          = 'number_input',
+}
+
+export enum RevealMode {
+  AfterEachRound = 'after_each_round',
+  EndOfGame      = 'end_of_game',
 }
 
 export enum PlayerStatus {

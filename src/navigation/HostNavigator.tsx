@@ -2,12 +2,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HostStackParamList } from '../types/navigation';
 import { Colors } from '../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../constants/typography';
-import SetupGameScreen from '../screens/host/SetupGameScreen';
 import QuestionnairesScreen from '../screens/host/QuestionnairesScreen';
-import GamesScreen from '../screens/host/GamesScreen';
-import QuestionnaireBuilderScreen from '../screens/host/QuestionnaireBuilderScreen';
-import QuestionEditorScreen from '../screens/host/QuestionEditorScreen';
-import RoundsBuilderScreen from '../screens/host/RoundsBuilderScreen';
+import QuestionPickerScreen from '../screens/host/QuestionPickerScreen';
 import HostGameScreen from '../screens/host/HostGameScreen';
 
 const Stack = createNativeStackNavigator<HostStackParamList>();
@@ -24,13 +20,9 @@ export function HostNavigator(): React.ReactElement {
         headerBackButtonDisplayMode: 'minimal',
       }}
     >
-      <Stack.Screen name="SetupGame"            component={SetupGameScreen}            options={{ title: 'Host a Game' }} />
-      <Stack.Screen name="Questionnaires"       component={QuestionnairesScreen}       options={{ title: 'Questionnaires' }} />
-      <Stack.Screen name="Games"                component={GamesScreen}                options={{ title: 'Games' }} />
-      <Stack.Screen name="QuestionnaireBuilder" component={QuestionnaireBuilderScreen} options={{ title: 'Questionnaire' }} />
-      <Stack.Screen name="QuestionEditor"       component={QuestionEditorScreen}       options={{ title: 'New Question' }} />
-      <Stack.Screen name="RoundsBuilder"        component={RoundsBuilderScreen}        options={{ title: 'Set Up Rounds' }} />
-      <Stack.Screen name="HostGame" component={HostGameScreen} options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="Questionnaires" component={QuestionnairesScreen} options={{ title: 'Games' }} />
+      <Stack.Screen name="QuestionPicker" component={QuestionPickerScreen} options={{ title: 'Set Up Game' }} />
+      <Stack.Screen name="HostGame"       component={HostGameScreen}       options={{ headerShown: false, gestureEnabled: false }} />
     </Stack.Navigator>
   );
 }

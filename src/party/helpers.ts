@@ -1,4 +1,4 @@
-import { GamePhase, PlayerStatus, RoundPhase } from '../constants/gameConstants';
+import { GamePhase, PlayerStatus, RevealMode, RoundPhase } from '../constants/gameConstants';
 import type { GameResults, PlayerResult, RoundResult } from '../types/results';
 import type { GameState, Round, RoundForPlayer } from '../types/game';
 import type { Player } from '../types/player';
@@ -25,7 +25,8 @@ export type ServerState = {
   roundAnswers:    Map<string, Answer[]>; // playerId -> answers
   roundHistory:    Map<number, Map<string, RoundData>>; // round# -> playerId -> data
   hostClientId:    string | null;
-  pausedFromPhase: GamePhase | null; // phase to restore on host reconnect
+  pausedFromPhase: GamePhase | null;
+  revealMode:      RevealMode;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ export function toPlayer(p: InternalPlayer): Player {
 }
 
 export function buildGameState(state: ServerState, roomId: string): GameState {
-  const { phase, roundPhase, currentRound, rounds, questionnaire, players, roundAnswers } = state;
+  const { phase, roundPhase, currentRound, rounds, questionnaire, players, roundAnswers, revealMode } = state;
 
   const roundsForPlayer: RoundForPlayer[] = rounds.map((r) => ({
     number: r.number,
@@ -52,6 +53,7 @@ export function buildGameState(state: ServerState, roomId: string): GameState {
     questionnaire:     questionnaire ?? null, // no stripping needed — questions have no correct answers
     rounds:            roundsForPlayer,
     answeredPlayerIds: [...roundAnswers.keys()],
+    revealMode,
   };
 }
 
@@ -70,6 +72,7 @@ export type PersistedState = {
   roundHistory:    [number, [string, RoundData][]][];
   hostClientId:    string | null;
   pausedFromPhase: GamePhase | null;
+  revealMode:      RevealMode;
 };
 
 export function serializeState(s: ServerState): PersistedState {
@@ -85,6 +88,7 @@ export function serializeState(s: ServerState): PersistedState {
     roundHistory:    [...s.roundHistory].map(([n, m]) => [n, [...m]] as [number, [string, RoundData][]]),
     hostClientId:    s.hostClientId,
     pausedFromPhase: s.pausedFromPhase,
+    revealMode:      s.revealMode,
   };
 }
 
@@ -101,6 +105,7 @@ export function deserializeState(p: PersistedState): ServerState {
     roundHistory:    new Map(p.roundHistory.map(([n, ps]) => [n, new Map(ps)])),
     hostClientId:    p.hostClientId,
     pausedFromPhase: p.pausedFromPhase,
+    revealMode:      p.revealMode ?? RevealMode.AfterEachRound,
   };
 }
 

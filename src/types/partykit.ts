@@ -3,6 +3,7 @@ import { GameResults, PlayerScore, QuestionResult } from './results';
 import { GameState, Round, RoundForPlayer } from './game';
 import { JoinRequest, Player } from './player';
 import { Questionnaire } from './questionnaire';
+import { RevealMode } from '../constants/gameConstants';
 
 // ─── Server → Client ────────────────────────────────────────────────────────
 
@@ -33,10 +34,11 @@ export type ClientMessage =
   | { type: 'lobby_init';      payload: { questionnaire: Questionnaire } }
   | { type: 'admit_player';    payload: { playerId: string } }
   | { type: 'deny_player';     payload: { playerId: string } }
-  | { type: 'start_game';      payload: { questionnaire: Questionnaire; rounds: Round[] } }
+  | { type: 'start_game';      payload: { questionnaire: Questionnaire; rounds: Round[]; revealMode: RevealMode } }
   | { type: 'submit_answers';  payload: PlayerRoundAnswers }
   | { type: 'reveal_answers' }
   | { type: 'resync_players' }
   | { type: 'advance_round' }
+  | { type: 'update_round';    payload: { round: Round } }
   | { type: 'kick_player';     payload: { playerId: string } }
   | { type: 'end_game' };

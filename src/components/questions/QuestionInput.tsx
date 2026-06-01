@@ -6,9 +6,10 @@ import { Colors } from '../../constants/colors';
 import { FontSize, FontWeight } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/spacing';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
-import { SliderQuestion } from './SliderQuestion';
 import { TagsQuestion } from './TagsQuestion';
 import { PriceQuestion } from './PriceQuestion';
+import { TextInputQuestion } from './TextInputQuestion';
+import { NumberInputQuestion } from './NumberInputQuestion';
 
 type Props = {
   question: Question;
@@ -42,19 +43,8 @@ export function QuestionInput({ question, answer, onAnswer, error }: Props): Rea
       );
       break;
     }
-    case QuestionType.SliderNumber: {
-      const value = answer?.type === QuestionType.SliderNumber ? answer.value : null;
-      inner = (
-        <SliderQuestion
-          question={question}
-          value={value}
-          onChange={(v) => onAnswer({ questionId: question.id, type: QuestionType.SliderNumber, value: v })}
-        />
-      );
-      break;
-    }
     case QuestionType.Tags: {
-      const tags = answer?.type === QuestionType.Tags ? answer.tags : [];
+      const tags = answer?.type === QuestionType.Tags ? (answer.tags as string[]) : [];
       inner = (
         <TagsQuestion
           question={question}
@@ -71,6 +61,28 @@ export function QuestionInput({ question, answer, onAnswer, error }: Props): Rea
           question={question}
           value={value}
           onChange={(v) => onAnswer({ questionId: question.id, type: QuestionType.Price, value: v })}
+        />
+      );
+      break;
+    }
+    case QuestionType.TextInput: {
+      const value = answer?.type === QuestionType.TextInput ? answer.value : '';
+      inner = (
+        <TextInputQuestion
+          question={question}
+          value={value}
+          onChange={(v) => onAnswer({ questionId: question.id, type: QuestionType.TextInput, value: v })}
+        />
+      );
+      break;
+    }
+    case QuestionType.NumberInput: {
+      const value = answer?.type === QuestionType.NumberInput ? answer.value : null;
+      inner = (
+        <NumberInputQuestion
+          question={question}
+          value={value}
+          onChange={(v) => onAnswer({ questionId: question.id, type: QuestionType.NumberInput, value: v })}
         />
       );
       break;

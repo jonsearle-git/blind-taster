@@ -1,14 +1,16 @@
-import { StyleSheet, View, Text, ScrollView, Pressable, FlatList } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable, FlatList, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { analyseLabel } from '../../lib/gemini';
 import { Colors } from '../../constants/colors';
 import { FontFamily, FontSize, FontWeight } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/spacing';
-import { GamePhase, RoundPhase } from '../../constants/gameConstants';
+import { GamePhase, RevealMode, RoundPhase } from '../../constants/gameConstants';
 import { HostStackParamList, RootStackParamList } from '../../types/navigation';
 import { Player, JoinRequest } from '../../types/player';
 import { PlayerResult } from '../../types/results';
@@ -124,11 +126,11 @@ function PlayerResultSection({ result, highlight, expanded, onToggle }: ResultSe
 export default function HostGameScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route      = useRoute<Route>();
-  const { questionnaireId, rounds: paramRounds, savedRoomCode } = route.params;
+  const { questionnaireId, rounds: paramRounds, revealMode, savedRoomCode, filteredQuestions } = route.params;
 
   const { state, dispatch, send, disconnect } = useGameContext();
   const { questionnaires }   = useQuestionnairesContext();
-  const { admitPlayer, denyPlayer, startGame, revealAnswers, advanceRound, endGame, kickPlayer, resyncPlayers } = useHostControls();
+  const { admitPlayer, denyPlayer, startGame, revealAnswers, updateRound, advanceRound, endGame, kickPlayer, resyncPlayers } = useHostControls();
   // After reconnect, the server's host_state message provides authoritative rounds (with correctAnswers).
   const rounds = state.hostRounds ?? paramRounds;
   const { roomCode }         = useHostSetup({ questionnaireId, rounds: paramRounds, savedRoomCode });
@@ -139,7 +141,18 @@ export default function HostGameScreen(): React.ReactElement {
   const [kickTarget,     setKickTarget]     = useState<{ id: string; name: string } | null>(null);
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
 
-  const questionnaire   = questionnaires.find((q) => q.id === questionnaireId) ?? null;
+  // Photo capture state
+  const [showCamera,      setShowCamera]      = useState(false);
+  const [analysing,       setAnalysing]       = useState(false);
+  const [photoError,      setPhotoError]      = useState<string | null>(null);
+  const [pendingRoundNum, setPendingRoundNum] = useState<number | null>(null);
+  const cameraRef = useRef<CameraView>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+  const baseQuestionnaire = questionnaires.find((q) => q.id === questionnaireId) ?? null;
+  const questionnaire     = baseQuestionnaire && filteredQuestions
+    ? { ...baseQuestionnaire, questions: filteredQuestions }
+    : baseQuestionnaire;
   const phase           = state.gameState?.phase;
   const pendingRequests = state.pendingRequests;
   const gameResults     = state.gameResults;
@@ -187,6 +200,95 @@ export default function HostGameScreen(): React.ReactElement {
     const player = players.find((p) => p.id === playerId);
     if (player) setKickTarget({ id: player.id, name: player.name });
   }
+
+  async function openCamera(roundNum: number): Promise<void> {
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) return;
+    }
+    setPendingRoundNum(roundNum);
+    setPhotoError(null);
+    setShowCamera(true);
+  }
+
+  async function handleCapture(): Promise<void> {
+    if (!cameraRef.current || !questionnaire || pendingRoundNum === null) return;
+    setAnalysing(true);
+    setShowCamera(false);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
+      if (!photo?.base64) throw new Error('No image data captured.');
+      const result = await analyseLabel(photo.base64, 'image/jpeg', questionnaire.questions);
+
+      const updatedRound = {
+        number:         pendingRoundNum,
+        label:          result.label,
+        correctAnswers: result.answers,
+      };
+      updateRound(updatedRound);
+
+      if (pendingRoundNum === 1 && phase === GamePhase.Lobby) {
+        // First round — start the game with this round's answers
+        const updatedRounds = [updatedRound];
+        if (questionnaire) startGame(questionnaire, updatedRounds, revealMode ?? RevealMode.AfterEachRound);
+      } else {
+        // Subsequent round — append the new round then advance
+        send({ type: 'update_round', payload: { round: updatedRound } });
+        dispatch({ type: 'CLEAR_ROUND_RESULTS' });
+        send({ type: 'advance_round' });
+      }
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : 'Analysis failed. Try again.');
+    } finally {
+      setAnalysing(false);
+      setPendingRoundNum(null);
+    }
+  }
+
+  function handleNextRound(): void {
+    void openCamera(currentRound + 1);
+  }
+
+  // ── Camera modal (shared across all views) ─────────────────────────────
+  const CameraModal = (
+    <>
+      <Modal visible={showCamera} animationType="slide" onRequestClose={() => setShowCamera(false)}>
+        <View style={styles.cameraContainer}>
+          <CameraView ref={cameraRef} style={StyleSheet.absoluteFillObject} facing="back" />
+          <View style={styles.cameraOverlay}>
+            <View style={styles.cameraFrame} />
+          </View>
+          <Text style={styles.cameraHint}>Point at the product label</Text>
+          <Pressable onPress={() => void handleCapture()} style={styles.captureBtn} accessibilityRole="button" accessibilityLabel="Take photo">
+            <View style={styles.captureBtnInner} />
+          </Pressable>
+          <Pressable onPress={() => setShowCamera(false)} style={styles.cameraCancel}>
+            <Text style={styles.cameraCancelText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
+      {analysing && (
+        <View style={styles.analysingOverlay}>
+          <View style={styles.analysingCard}>
+            <ActivityIndicator size="large" color={Colors.melon} />
+            <Text style={styles.analysingText}>Analysing label…</Text>
+          </View>
+        </View>
+      )}
+
+      {photoError !== null && (
+        <View style={styles.analysingOverlay}>
+          <View style={styles.analysingCard}>
+            <Text style={styles.analysingError}>{photoError}</Text>
+            <Pressable onPress={() => setPhotoError(null)} style={styles.errorDismiss}>
+              <Text style={styles.errorDismissText}>Dismiss</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </>
+  );
 
   // ── Results view ────────────────────────────────────────────────────────
   if (phase === GamePhase.GameOver && gameResults) {
@@ -261,8 +363,11 @@ export default function HostGameScreen(): React.ReactElement {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button label="Reveal Answers" onPress={revealAnswers} disabled={roundPhase !== RoundPhase.AllAnswered} />
-          <Button label={isLastRound ? 'End Game' : 'Next Round'} onPress={isLastRound ? endGame : advanceRound} disabled={roundPhase !== RoundPhase.AnswersRevealed} />
+          {(revealMode ?? RevealMode.AfterEachRound) === RevealMode.AfterEachRound && (
+            <Button label="Reveal Answers" onPress={revealAnswers} disabled={roundPhase !== RoundPhase.AllAnswered} />
+          )}
+          <Button label="Next Round" onPress={handleNextRound} disabled={roundPhase !== RoundPhase.AnswersRevealed && roundPhase !== RoundPhase.AllAnswered} />
+          <Button label="End Game" onPress={endGame} variant="secondary" disabled={roundPhase !== RoundPhase.AnswersRevealed && roundPhase !== RoundPhase.AllAnswered} />
         </View>
 
         <HostDropdown
@@ -288,6 +393,7 @@ export default function HostGameScreen(): React.ReactElement {
           onConfirm={() => { if (kickTarget) kickPlayer(kickTarget.id); setKickTarget(null); }}
           onCancel={() => setKickTarget(null)}
         />
+        {CameraModal}
       </ScreenContainer>
     );
   }
@@ -335,11 +441,11 @@ export default function HostGameScreen(): React.ReactElement {
 
         <View style={styles.lobbyFooter}>
           <Button
-            label="Start Game"
-            onPress={() => { if (questionnaire) startGame(questionnaire, rounds); }}
+            label="Scan Label & Start"
+            onPress={() => void openCamera(1)}
             disabled={!canStart}
             style={styles.footerButton}
-            accessibilityLabel={canStart ? 'Start the game' : 'Need at least one player to start'}
+            accessibilityLabel={canStart ? 'Scan the label and start the game' : 'Need at least one player to start'}
           />
         </View>
       </LinearGradient>
@@ -367,6 +473,7 @@ export default function HostGameScreen(): React.ReactElement {
         onConfirm={handleAbandonConfirm}
         onCancel={() => setShowAbandon(false)}
       />
+      {CameraModal}
     </SafeAreaView>
   );
 }
@@ -411,6 +518,22 @@ const styles = StyleSheet.create({
   admitText:       { color: Colors.ink, fontSize: FontSize.sm, fontWeight: FontWeight.black },
   denyBtn:         { backgroundColor: Colors.cream, borderRadius: BorderRadius.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderWidth: 2, borderColor: Colors.ink },
   denyText:        { color: Colors.ink, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+
+  // Camera
+  cameraContainer:  { flex: 1, backgroundColor: Colors.ink },
+  cameraOverlay:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  cameraFrame:      { width: 280, height: 200, borderWidth: 3, borderColor: Colors.cream, borderRadius: BorderRadius.lg },
+  cameraHint:       { position: 'absolute', bottom: 160, alignSelf: 'center', color: Colors.cream, fontFamily: FontFamily.body, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  captureBtn:       { position: 'absolute', bottom: Spacing.xl * 2, alignSelf: 'center', width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.cream, borderWidth: 4, borderColor: Colors.melon, alignItems: 'center', justifyContent: 'center' },
+  captureBtnInner:  { width: 54, height: 54, borderRadius: 27, backgroundColor: Colors.melon },
+  cameraCancel:     { position: 'absolute', bottom: Spacing.xl, alignSelf: 'center', paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm, backgroundColor: Colors.ink + 'CC', borderRadius: BorderRadius.pill, borderWidth: 2, borderColor: Colors.cream },
+  cameraCancelText: { color: Colors.cream, fontFamily: FontFamily.body, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  analysingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: Colors.overlay, alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+  analysingCard:    { backgroundColor: Colors.cream, borderRadius: BorderRadius.lg, borderWidth: 2.5, borderColor: Colors.ink, padding: Spacing.xl, alignItems: 'center', gap: Spacing.md, shadowColor: Colors.ink, shadowOffset: { width: 5, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 8 },
+  analysingText:    { fontFamily: FontFamily.heading, color: Colors.ink, fontSize: FontSize.md, fontWeight: FontWeight.black },
+  analysingError:   { fontFamily: FontFamily.body, color: Colors.melon, fontSize: FontSize.sm, fontWeight: FontWeight.bold, textAlign: 'center' },
+  errorDismiss:     { backgroundColor: Colors.melon, borderRadius: BorderRadius.pill, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderWidth: 2, borderColor: Colors.ink },
+  errorDismissText: { fontFamily: FontFamily.body, color: Colors.cream, fontSize: FontSize.sm, fontWeight: FontWeight.black },
 
   // Results
   resultsInner:    { padding: Spacing.md, paddingTop: Spacing.xl, gap: Spacing.md },

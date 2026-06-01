@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
 import type { Questionnaire } from '../types/questionnaire';
 import type { Round } from '../types/game';
+import { RevealMode } from '../constants/gameConstants';
 
 export function useHostControls() {
   const { dispatch, send } = useGameContext();
@@ -16,8 +17,8 @@ export function useHostControls() {
     send({ type: 'deny_player', payload: { playerId } });
   }, [dispatch, send]);
 
-  const startGame = useCallback((questionnaire: Questionnaire, rounds: Round[]): void => {
-    send({ type: 'start_game', payload: { questionnaire, rounds } });
+  const startGame = useCallback((questionnaire: Questionnaire, rounds: Round[], revealMode: RevealMode): void => {
+    send({ type: 'start_game', payload: { questionnaire, rounds, revealMode } });
   }, [send]);
 
   const revealAnswers = useCallback((): void => {
@@ -26,6 +27,10 @@ export function useHostControls() {
 
   const resyncPlayers = useCallback((): void => {
     send({ type: 'resync_players' });
+  }, [send]);
+
+  const updateRound = useCallback((round: Round): void => {
+    send({ type: 'update_round', payload: { round } });
   }, [send]);
 
   const advanceRound = useCallback((): void => {
@@ -42,5 +47,5 @@ export function useHostControls() {
     send({ type: 'kick_player', payload: { playerId } });
   }, [send]);
 
-  return { admitPlayer, denyPlayer, startGame, revealAnswers, resyncPlayers, advanceRound, endGame, kickPlayer };
+  return { admitPlayer, denyPlayer, startGame, revealAnswers, resyncPlayers, updateRound, advanceRound, endGame, kickPlayer };
 }

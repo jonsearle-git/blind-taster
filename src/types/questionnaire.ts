@@ -1,5 +1,7 @@
 import { QuestionType } from '../constants/gameConstants';
 
+export type QuestionDifficulty = 'easy' | 'hard';
+
 export type MultipleChoiceOption = {
   id: string;
   label: string;
@@ -12,6 +14,7 @@ export type MultipleChoiceTextQuestion = {
   type: QuestionType.MultipleChoiceText;
   prompt: string;
   options: MultipleChoiceOption[];
+  difficulty?: QuestionDifficulty;
 };
 
 export type MultipleChoiceNumberQuestion = {
@@ -19,21 +22,14 @@ export type MultipleChoiceNumberQuestion = {
   type: QuestionType.MultipleChoiceNumber;
   prompt: string;
   options: MultipleChoiceOption[];
-};
-
-export type SliderNumberQuestion = {
-  id: string;
-  type: QuestionType.SliderNumber;
-  prompt: string;
-  min: number;
-  max: number;
-  step: number;
+  difficulty?: QuestionDifficulty;
 };
 
 export type TagsQuestion = {
   id: string;
   type: QuestionType.Tags;
   prompt: string;
+  difficulty?: QuestionDifficulty;
 };
 
 export type PriceQuestion = {
@@ -41,14 +37,33 @@ export type PriceQuestion = {
   type: QuestionType.Price;
   prompt: string;
   currencySymbol: string;
+  difficulty?: QuestionDifficulty;
+};
+
+export type TextInputQuestion = {
+  id: string;
+  type: QuestionType.TextInput;
+  prompt: string;
+  placeholder?: string;
+  difficulty?: QuestionDifficulty;
+};
+
+export type NumberInputQuestion = {
+  id: string;
+  type: QuestionType.NumberInput;
+  prompt: string;
+  placeholder?: string;
+  unit?: string;
+  difficulty?: QuestionDifficulty;
 };
 
 export type Question =
   | MultipleChoiceTextQuestion
   | MultipleChoiceNumberQuestion
-  | SliderNumberQuestion
   | TagsQuestion
-  | PriceQuestion;
+  | PriceQuestion
+  | TextInputQuestion
+  | NumberInputQuestion;
 
 export type Questionnaire = {
   id: string;
@@ -58,7 +73,3 @@ export type Questionnaire = {
   updatedAt: number;
 };
 
-// Identical to Questionnaire — questions never contained sensitive data now.
-// Kept as alias so existing imports don't break.
-export type QuestionForPlayer = Question;
-export type QuestionnaireForPlayer = Questionnaire;

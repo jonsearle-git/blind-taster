@@ -4,7 +4,7 @@ import { SavedGame } from '../types/savedGame';
 
 // Bump this whenever the schema changes — old DB is dropped and recreated.
 // Also re-seeds the database on next boot via seedIfNeeded().
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -60,6 +60,12 @@ export async function getQuestionnaire(id: string): Promise<Questionnaire | null
   return JSON.parse(row.data) as Questionnaire;
 }
 
+export async function clearQuestionnaires(): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM questionnaires');
+}
+
+// Used only by seedData.ts to insert preloaded questionnaires on boot.
 export async function saveQuestionnaire(questionnaire: Questionnaire): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
@@ -72,19 +78,6 @@ export async function saveQuestionnaire(questionnaire: Questionnaire): Promise<v
     questionnaire.id, questionnaire.name, JSON.stringify(questionnaire),
     questionnaire.createdAt, questionnaire.updatedAt
   );
-}
-
-export async function updateQuestionnaire(questionnaire: Questionnaire): Promise<void> {
-  const database = await getDatabase();
-  await database.runAsync(
-    `UPDATE questionnaires SET name = ?, data = ?, updated_at = ? WHERE id = ?`,
-    questionnaire.name, JSON.stringify(questionnaire), questionnaire.updatedAt, questionnaire.id
-  );
-}
-
-export async function deleteQuestionnaire(id: string): Promise<void> {
-  const database = await getDatabase();
-  await database.runAsync('DELETE FROM questionnaires WHERE id = ?', id);
 }
 
 // ── Saved Games ────────────────────────────────────────────────────────────

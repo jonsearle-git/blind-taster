@@ -23,3 +23,6 @@ namespace_id = "1001"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BlindTasterServer"]
+
+# Secrets (set via `npx wrangler secret put GEMINI_API_KEY`)
+# GEMINI_API_KEY — Google Gemini API key for label analysis

@@ -12,16 +12,12 @@ export type MultipleChoiceNumberAnswer = {
   selectedOptionId: string;
 };
 
-export type SliderNumberAnswer = {
-  questionId: string;
-  type: QuestionType.SliderNumber;
-  value: number;
-};
-
 export type TagsAnswer = {
   questionId: string;
   type: QuestionType.Tags;
-  tags: string[];
+  // Player answers: string[] (one word per tag).
+  // Correct answers (Gemini): string[][] (each tag is an array of accepted synonyms).
+  tags: string[] | string[][];
 };
 
 export type PriceAnswer = {
@@ -30,12 +26,25 @@ export type PriceAnswer = {
   value: number;
 };
 
+export type TextInputAnswer = {
+  questionId: string;
+  type: QuestionType.TextInput;
+  value: string;
+};
+
+export type NumberInputAnswer = {
+  questionId: string;
+  type: QuestionType.NumberInput;
+  value: number;
+};
+
 export type Answer =
   | MultipleChoiceTextAnswer
   | MultipleChoiceNumberAnswer
-  | SliderNumberAnswer
   | TagsAnswer
-  | PriceAnswer;
+  | PriceAnswer
+  | TextInputAnswer
+  | NumberInputAnswer;
 
 export type PlayerRoundAnswers = {
   playerId: string;

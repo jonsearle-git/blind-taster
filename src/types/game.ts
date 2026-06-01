@@ -1,4 +1,4 @@
-import { GamePhase, RoundPhase } from '../constants/gameConstants';
+import { GamePhase, RevealMode, RoundPhase } from '../constants/gameConstants';
 import { Player } from './player';
 import { Questionnaire } from './questionnaire';
 import { Answer } from './answer';
@@ -25,5 +25,6 @@ export type GameState = {
   totalRounds: number;
   questionnaire: Questionnaire | null;
   rounds: RoundForPlayer[];
-  answeredPlayerIds: string[]; // server-authoritative; replaces client-side tracking
+  answeredPlayerIds: string[];
+  revealMode: RevealMode;
 };

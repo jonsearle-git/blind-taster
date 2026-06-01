@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { Answer } from '../types/answer';
-import { QuestionForPlayer } from '../types/questionnaire';
+import { Question } from '../types/questionnaire';
 import { QuestionType } from '../constants/gameConstants';
 
 type AnswerMap = Map<string, Answer>;
 
-export function useAnswers(questions: QuestionForPlayer[]) {
+export function useAnswers(questions: Question[]) {
   const [answers, setAnswers] = useState<AnswerMap>(new Map());
 
   const setAnswer = useCallback((answer: Answer) => {

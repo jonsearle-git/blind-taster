@@ -1,7 +1,7 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { Round } from './game';
+import { RevealMode } from '../constants/gameConstants';
 import { Question } from './questionnaire';
-import { QuestionType } from '../constants/gameConstants';
 
 export type RootStackParamList = {
   Home:   undefined;
@@ -10,13 +10,9 @@ export type RootStackParamList = {
 };
 
 export type HostStackParamList = {
-  SetupGame:            undefined;
-  Questionnaires:       undefined;
-  Games:                undefined;
-  QuestionnaireBuilder: { questionnaireId?: string };
-  QuestionEditor:       { questionType?: QuestionType; question?: Question };
-  RoundsBuilder:        { gameId?: string; questionnaireId?: string };
-  HostGame:             { questionnaireId: string; rounds: Round[]; savedRoomCode?: string };
+  Questionnaires: undefined;
+  QuestionPicker: { questionnaireId: string };
+  HostGame:       { questionnaireId: string; rounds: Round[]; revealMode: RevealMode; savedRoomCode?: string; filteredQuestions?: Question[] };
 };
 
 export type PlayerStackParamList = {
